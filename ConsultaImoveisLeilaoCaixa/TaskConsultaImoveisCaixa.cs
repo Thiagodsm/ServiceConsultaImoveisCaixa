@@ -47,15 +47,15 @@ namespace ConsultaImoveisLeilaoCaixa
                     var cidadeDropdown = new SelectElement(driver.FindElement(By.Id("cmb_cidade")));
                     cidadeDropdown.SelectByText("GUARUJA");
 
-                    // Aguarde um tempo adicional (de 15 segundos) antes de selecionar proximo
+                    // Aguarde um tempo adicional (de 20 segundos) antes de selecionar proximo
                     Thread.Sleep(20000);
 
                     // Clique no botão "Próximo"
                     var btnNext = driver.FindElement(By.Id("btn_next0"));
                     btnNext.Click();
 
-                    // Aguarde um tempo adicional (de 5 segundos) antes de selecionar proximo
-                    Thread.Sleep(5000);
+                    // Aguarde um tempo adicional (de 10 segundos) antes de selecionar proximo
+                    Thread.Sleep(10000);
 
                     // Clique no botão "Próximo"
                     var btnNext1 = driver.FindElement(By.Id("btn_next1"));
@@ -85,11 +85,13 @@ namespace ConsultaImoveisLeilaoCaixa
                             // Adicione aqui a lógica para lidar com a página de detalhes do imóvel
                             // ...
 
-                            // Volte para a página de listagem de imóveis
-                            //driver.Navigate().Back();
+                            
                             // Adiciona o número do imóvel ao conjunto de números processados
                             numerosImoveisProcessados.Add(numeroImovel);
                         }
+
+                        // Removendo Id's duplicados
+                        numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
 
                         // Navegue para a próxima página, se houver
                         if (currentPage < totalPages)
@@ -102,7 +104,10 @@ namespace ConsultaImoveisLeilaoCaixa
                         }
                     }
 
+                    // Volte para a página de listagem de imóveis
+                    driver.Navigate().Back();
 
+                    driver.Quit();
                     // Adicione aqui a lógica para lidar com a próxima página, se necessário
                 }
                 catch (Exception e)

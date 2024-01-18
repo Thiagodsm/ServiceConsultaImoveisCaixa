@@ -115,9 +115,35 @@ namespace ConsultaImoveisLeilaoCaixa
                         ((IJavaScriptExecutor)driver).ExecuteScript(script);
 
                         // Aguarde um tempo para a próxima página carregar completamente (opcional)
-                        Thread.Sleep(30000);
+                        Thread.Sleep(1000);
 
                         // Obtenha os dados esperados
+                        // Localiza a div principal que contém as informações
+                        IWebElement divPrincipal = driver.FindElement(By.CssSelector("div.content-wrapper.clearfix"));
+
+                        // Extrai o valor de avaliação
+                        string valorAvaliacao = divPrincipal.FindElement(By.XPath(".//p[contains(text(), 'Valor de avaliação')]")).Text;
+                        Console.WriteLine("Valor de avaliação: " + valorAvaliacao);
+
+                        // Extrai o tipo de imóvel
+                        string tipoImovel = divPrincipal.FindElement(By.XPath(".//span[contains(text(), 'Tipo de imóvel')]/strong")).Text;
+                        Console.WriteLine("Tipo de imóvel: " + tipoImovel);
+
+                        // Extrai a área privativa
+                        string areaPrivativa = divPrincipal.FindElement(By.XPath(".//span[contains(text(), 'Área privativa')]/strong")).Text;
+                        Console.WriteLine("Área privativa: " + areaPrivativa);
+
+                        // Extrai o número do item
+                        string numeroItem = divPrincipal.FindElement(By.XPath(".//span[contains(text(), 'Número do item')]/strong")).Text;
+                        Console.WriteLine("Número do item: " + numeroItem);
+
+                        // Extrai informações com base na classe "fa-info-circle"
+                        ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
+                        foreach (var infoCircle in infoCircles)
+                        {
+                            string infoText = infoCircle.FindElement(By.XPath("./following-sibling::text()[1]")).Text.Trim();
+                            Console.WriteLine(infoText);
+                        }
 
                         // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
                         driver.Navigate().Back();

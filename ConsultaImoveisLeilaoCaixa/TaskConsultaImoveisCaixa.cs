@@ -62,8 +62,8 @@ namespace ConsultaImoveisLeilaoCaixa
                     var btnNext1 = driver.FindElement(By.Id("btn_next1"));
                     btnNext1.Click();
 
-                    // Aguarde um tempo adicional (de 90 segundos) antes de verificar a quantidade de paginas
-                    Thread.Sleep(70000);
+                    // Aguarde um tempo adicional (de 120 segundos) antes de verificar a quantidade de paginas
+                    Thread.Sleep(120000);
 
                     // Conjunto para rastrear números de imóveis já processados
                     List<string> numerosImoveisProcessados = new List<string>();
@@ -161,7 +161,12 @@ namespace ConsultaImoveisLeilaoCaixa
                 catch (Exception e)
                 {
                     _logger.LogCritical(e.Message);
-                    throw;
+                    if (!String.IsNullOrWhiteSpace(e.Message))
+                    {
+                        driver.Quit();
+                        Thread.Sleep(30000);
+                        await ExecuteAsync(stoppingToken);
+                    }
                 }
                 finally
                 {

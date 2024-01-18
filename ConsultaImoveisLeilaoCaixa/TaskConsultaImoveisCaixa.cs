@@ -2,6 +2,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
+using System.Collections.ObjectModel;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
@@ -47,22 +48,22 @@ namespace ConsultaImoveisLeilaoCaixa
                     var cidadeDropdown = new SelectElement(driver.FindElement(By.Id("cmb_cidade")));
                     cidadeDropdown.SelectByText("GUARUJA");
 
-                    // Aguarde um tempo adicional (de 20 segundos) antes de selecionar proximo
+                    // Aguarde um tempo adicional (de 20 segundos) antes de clicar em proximo
                     Thread.Sleep(20000);
 
                     // Clique no botão "Próximo"
                     var btnNext = driver.FindElement(By.Id("btn_next0"));
                     btnNext.Click();
 
-                    // Aguarde um tempo adicional (de 10 segundos) antes de selecionar proximo
+                    // Aguarde um tempo adicional (de 10 segundos) antes de clicar em proximo
                     Thread.Sleep(10000);
 
                     // Clique no botão "Próximo"
                     var btnNext1 = driver.FindElement(By.Id("btn_next1"));
                     btnNext1.Click();
 
-                    // Aguarde um tempo adicional (de 5 segundos) antes de verificar a quantidade de paginas
-                    Thread.Sleep(5000);
+                    // Aguarde um tempo adicional (de 90 segundos) antes de verificar a quantidade de paginas
+                    Thread.Sleep(70000);
 
                     // Conjunto para rastrear números de imóveis já processados
                     List<string> numerosImoveisProcessados = new List<string>();
@@ -73,36 +74,57 @@ namespace ConsultaImoveisLeilaoCaixa
                     for (int currentPage = 1; currentPage <= totalPages; currentPage++)
                     {
                         // Lógica para extrair detalhes de cada imóvel na página atual
-                        var detalhesLinks = driver.FindElements(By.CssSelector("a[onclick*='detalhe_imovel']"));
+                        ReadOnlyCollection<IWebElement> detalhesLinks = driver.FindElements(By.CssSelector("a[onclick*='detalhe_imovel']"));
 
-                        foreach (var detalhesLink in detalhesLinks)
+                        foreach (IWebElement detalhesLink in detalhesLinks)
                         {
                             string onclickValue = detalhesLink.GetAttribute("onclick");
                             string numeroImovel = ExtrairNumeroImovel(onclickValue);
-
                             //detalhesLink.Click();
 
                             // Adicione aqui a lógica para lidar com a página de detalhes do imóvel
                             // ...
 
                             
-                            // Adiciona o número do imóvel ao conjunto de números processados
+                            // Adiciona o número do imóvel a lista
                             numerosImoveisProcessados.Add(numeroImovel);
                         }
 
-                        // Removendo Id's duplicados
-                        numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
+                        // Aguarde um tempo para a próxima página carregar completamente
+                        Thread.Sleep(10000);
 
                         // Navegue para a próxima página, se houver
                         if (currentPage < totalPages)
                         {
-                            // Aguarde um tempo para a próxima página carregar completamente
-                            Thread.Sleep(5000); 
-
                             // Clique no link para a próxima página
                             driver.FindElement(By.CssSelector($"a[href='javascript:carregaListaImoveis({currentPage + 1});']")).Click();
+
+                            // Aguarde um tempo para a próxima página carregar completamente
+                            Thread.Sleep(10000);
                         }
                     }
+
+                    // Removendo Id's duplicados
+                    numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
+
+                    // Itera sobre os números de imóveis processados
+                    foreach (var numeroImovel in numerosImoveisProcessados)
+                    {
+                        // Executa o script JavaScript para chamar o método detalhe_imovel com o ID correspondente
+                        string script = $"detalhe_imovel({numeroImovel});";
+                        ((IJavaScriptExecutor)driver).ExecuteScript(script);
+
+                        // Aguarde um tempo para a próxima página carregar completamente (opcional)
+                        Thread.Sleep(30000);
+
+                        // Obtenha os dados esperados
+
+                        // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
+                        driver.Navigate().Back();
+                    }
+
+                    // Aguarde um tempo para voltar a pagina anterior
+                    Thread.Sleep(5000);
 
                     // Volte para a página de listagem de imóveis
                     driver.Navigate().Back();

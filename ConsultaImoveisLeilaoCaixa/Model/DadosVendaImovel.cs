@@ -11,6 +11,7 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public string edital { get; set; }
         public string numeroItem { get; set; }
         public string leiloeiro { get; set; }
+        public string dataLicitacao { get; set; }
         public string dataPrimeiroLeilao { get; set; }
         public string dataSegundoLeilao { get; set; }
         public string endereco { get; set; }

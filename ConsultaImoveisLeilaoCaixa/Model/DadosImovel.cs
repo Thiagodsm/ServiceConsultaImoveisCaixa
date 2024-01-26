@@ -8,6 +8,7 @@ namespace ConsultaImoveisLeilaoCaixa.Model
 {
     public class DadosImovel
     {
+        public string nomeLoteamento { get; set; }
         public DadosVendaImovel dadosVendaImovel { get; set; }
         public string valorAvaliacao { get; set; }
         public string valorMinimoVenda { get; set; }
@@ -16,11 +17,12 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public string tipoImovel { get; set; }
         public string quartos { get; set; }
         public string garagem { get; set; }
+        public string numeroItem { get; set; }
         public string numeroImovel { get; set; }
         public string matricula { get; set; }
         public string comarca { get; set; }
         public string oficio { get; set; }
-        public string incricaoImobiliaria { get; set; }
+        public string inscricaoImobiliaria { get; set; }
         public string averbacaoLeilaoNegativos { get; set; }
         public string areaTotal { get; set; }
         public string areaPrivativa { get; set; }

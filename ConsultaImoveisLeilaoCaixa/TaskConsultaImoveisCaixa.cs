@@ -1,3 +1,4 @@
+using ConsultaImoveisLeilaoCaixa.Model;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
@@ -5,6 +6,7 @@ using SeleniumExtras.WaitHelpers;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
@@ -23,8 +25,8 @@ namespace ConsultaImoveisLeilaoCaixa
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
 
-                var edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
-                var driver = new EdgeDriver(edgeDriverPath);
+                string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
+                EdgeDriver driver = new EdgeDriver(edgeDriverPath);
 
                 try
                 {
@@ -50,22 +52,22 @@ namespace ConsultaImoveisLeilaoCaixa
                     var cidadeDropdown = new SelectElement(driver.FindElement(By.Id("cmb_cidade")));
                     cidadeDropdown.SelectByText("GUARUJA");
 
-                    // Aguarde um tempo adicional (de 20 segundos) antes de clicar em proximo
-                    Thread.Sleep(20000);
+                    // Aguarde um tempo adicional (de 5 segundos) antes de clicar em proximo
+                    Thread.Sleep(5000);
 
                     // Clique no botão "Próximo"
                     var btnNext = driver.FindElement(By.Id("btn_next0"));
                     btnNext.Click();
 
-                    // Aguarde um tempo adicional (de 10 segundos) antes de clicar em proximo
-                    Thread.Sleep(10000);
+                    // Aguarde um tempo adicional (de 5 segundos) antes de clicar em proximo
+                    Thread.Sleep(5000);
 
                     // Clique no botão "Próximo"
                     var btnNext1 = driver.FindElement(By.Id("btn_next1"));
                     btnNext1.Click();
 
-                    // Aguarde um tempo adicional (de 60 segundos) antes de verificar a quantidade de paginas
-                    Thread.Sleep(60000);
+                    // Aguarde um tempo adicional (de 20 segundos) antes de verificar a quantidade de paginas
+                    Thread.Sleep(20000);
 
                     // Conjunto para rastrear números de imóveis já processados
                     List<string> numerosImoveisProcessados = new List<string>();
@@ -105,6 +107,8 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Removendo Id's duplicados
                     numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
 
+                    List<DadosImovel> dadosImoveis = new List<DadosImovel>();
+
                     // Itera sobre os números de imóveis processados
                     foreach (var numeroImovel in numerosImoveisProcessados)
                     {
@@ -119,30 +123,9 @@ namespace ConsultaImoveisLeilaoCaixa
                         // Localiza a div principal que contém as informações
                         IWebElement divPrincipal = driver.FindElement(By.CssSelector("div.content-wrapper.clearfix"));
 
-                        // Extrai o valor de avaliação
-                        //string valorAvaliacao = divPrincipal.FindElement(By.XPath(".//p[contains(text(), 'Valor de avaliação')]")).Text;
-                        string valorAvaliacao = BuscaElemento(divPrincipal, "Valor de avaliação");
-                        Console.WriteLine("Valor de avaliação: " + valorAvaliacao);
-
-                        // Extrai o tipo de imóvel
-                        string tipoImovel = BuscaElemento(divPrincipal, "Tipo de imóvel");
-                        Console.WriteLine("Tipo de imóvel: " + tipoImovel);
-
-                        // Extrai a área privativa
-                        string areaPrivativa = BuscaElemento(divPrincipal, "Área privativa");
-                        Console.WriteLine("Área privativa: " + areaPrivativa);
-
-                        // Extrai o número do item
-                        string numeroItem = BuscaElemento(divPrincipal, "Número do item");
-                        Console.WriteLine("Número do item: " + numeroItem);
-
-                        // Extrai informações com base na classe "fa-info-circle"
-                        ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
-                        foreach (var infoCircle in infoCircles)
-                        {
-                            string infoText = infoCircle.FindElement(By.XPath("./following-sibling::text()[1]")).Text.Trim();
-                            Console.WriteLine(infoText);
-                        }
+                        // Definindo o objeto a partir da div principal
+                        DadosImovel imovel = DefineObjeto(driver, divPrincipal);
+                        dadosImoveis.Add(imovel);
 
                         // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
                         driver.Navigate().Back();
@@ -175,25 +158,9 @@ namespace ConsultaImoveisLeilaoCaixa
             }
         }
 
-        #region BuscaElemento
-        public string BuscaElemento(IWebElement divPrincipal, string textoProcurado)
-        {
-            IWebElement item = divPrincipal.FindElements(By.XPath($".//span[contains(text(), '{textoProcurado}')]/strong")).FirstOrDefault();
-            if (item != null)
-                return item.Text;
-            else
-                return String.Empty;
-        }
-        #endregion
-
         #region ExtrairNumeroImovel
         public string ExtrairNumeroImovel(string onclickValue)
         {
-            // Este é apenas um exemplo básico. Você pode precisar ajustar conforme a estrutura real do atributo onclick.
-            // A ideia é extrair o número do imóvel da string.
-
-            // Aqui, estamos assumindo que o número do imóvel está entre parênteses. 
-            // Se a estrutura real for diferente, ajuste conforme necessário.
             int startIndex = onclickValue.IndexOf("(") + 1;
             int endIndex = onclickValue.IndexOf(")");
 
@@ -203,6 +170,82 @@ namespace ConsultaImoveisLeilaoCaixa
             }
 
             return null;
+        }
+        #endregion
+
+        #region DefineObjeto
+        public DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal)
+        {
+            DadosImovel imovel = new DadosImovel();
+
+            //string valorAvaliacao = divPrincipal.FindElement(By.XPath(".//p[contains(text(), 'Valor de avaliação')]")).Text;
+            IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
+            imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
+            imovel.valorAvaliacao = BuscaInfoImovel(divPrincipal, "Valor de avaliação");
+            imovel.valorMinimoVenda = "";
+            imovel.valorMinimoPrimeiraVenda = "";
+            imovel.valorMinimoSegundaVenda = "";
+            imovel.tipoImovel = BuscaInfoImovel(divPrincipal, "Tipo de imóvel");
+            imovel.quartos = BuscaInfoImovel(divPrincipal, "Quartos");
+            imovel.garagem = BuscaInfoImovel(divPrincipal, "Garagem");
+            imovel.numeroItem = BuscaInfoImovel(divPrincipal, "Número do item");
+            imovel.numeroImovel = BuscaInfoImovel(divPrincipal, "Número do imóvel");
+            imovel.matricula = BuscaInfoImovel(divPrincipal, "Matrícula(s)");
+            imovel.comarca = BuscaInfoImovel(divPrincipal, "Comarca");
+            imovel.oficio = BuscaInfoImovel(divPrincipal, "Ofício");
+            imovel.inscricaoImobiliaria = BuscaInfoImovel(divPrincipal, "Inscrição imobiliária");
+            imovel.averbacaoLeilaoNegativos = BuscaInfoImovel(divPrincipal, "Averbação dos leilões negativos");
+            imovel.areaTotal = BuscaInfoImovel(divPrincipal, "Área total");
+            imovel.areaPrivativa = BuscaInfoImovel(divPrincipal, "Área privativa");
+            imovel.areaTerreno = BuscaInfoImovel(divPrincipal, "Área do terreno");
+
+            imovel.dadosVendaImovel = new DadosVendaImovel();
+            imovel.dadosVendaImovel.endereco = BuscaInfoVendaImovel(divPrincipal, "Endereço");
+            imovel.dadosVendaImovel.descricao = BuscaInfoVendaImovel(divPrincipal, "Descrição");
+
+            // Extrai informações com base na classe "fa-info-circle"
+            ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
+            imovel.dadosVendaImovel.formasDePagamento = new List<string>();
+            foreach (var infoCircle in infoCircles)
+            {
+                string infoText = ((IJavaScriptExecutor)driver).ExecuteScript("return arguments[0].nextSibling.nodeValue;", infoCircle) as string;
+                if (infoText != null)
+                {
+                    infoText = infoText.Trim();
+                    imovel.dadosVendaImovel.formasDePagamento.Add(infoText);
+                }
+            }
+
+            return imovel;
+        }
+        #endregion
+
+        #region BuscaInfoImovel
+        public string BuscaInfoImovel(IWebElement divPrincipal, string textoProcurado)
+        {
+            IWebElement item = divPrincipal.FindElements(By.XPath($".//span[contains(text(), '{textoProcurado}')]/strong")).FirstOrDefault();
+            if (item != null)
+                return item.Text;
+            else
+                return String.Empty;
+        }
+        #endregion
+
+        #region BuscaInfoVendaImovel
+        public string BuscaInfoVendaImovel(IWebElement divPrincipal, string textoProcurado)
+        {
+            // Localiza a div.related-box dentro da divPrincipal
+            IWebElement divRelatedBox = divPrincipal.FindElement(By.CssSelector("div.related-box"));
+            IWebElement item = divRelatedBox.FindElements(By.XPath($".//p/strong[contains(text(), '{textoProcurado}:')]/following-sibling::text()[1]/parent::*")).FirstOrDefault();
+
+            if (item != null)
+            {
+                string textoTratado = item.Text.Replace($"{textoProcurado}:", "");
+                textoTratado = Regex.Replace(textoTratado, @"\s+", " ").Trim();
+                return textoTratado;
+            }
+            else
+                return String.Empty;
         }
         #endregion
     }

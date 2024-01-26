@@ -3,6 +3,8 @@ using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
@@ -62,8 +64,8 @@ namespace ConsultaImoveisLeilaoCaixa
                     var btnNext1 = driver.FindElement(By.Id("btn_next1"));
                     btnNext1.Click();
 
-                    // Aguarde um tempo adicional (de 120 segundos) antes de verificar a quantidade de paginas
-                    Thread.Sleep(120000);
+                    // Aguarde um tempo adicional (de 60 segundos) antes de verificar a quantidade de paginas
+                    Thread.Sleep(60000);
 
                     // Conjunto para rastrear números de imóveis já processados
                     List<string> numerosImoveisProcessados = new List<string>();
@@ -82,10 +84,6 @@ namespace ConsultaImoveisLeilaoCaixa
                             string numeroImovel = ExtrairNumeroImovel(onclickValue);
                             //detalhesLink.Click();
 
-                            // Adicione aqui a lógica para lidar com a página de detalhes do imóvel
-                            // ...
-
-                            
                             // Adiciona o número do imóvel a lista
                             numerosImoveisProcessados.Add(numeroImovel);
                         }
@@ -122,19 +120,20 @@ namespace ConsultaImoveisLeilaoCaixa
                         IWebElement divPrincipal = driver.FindElement(By.CssSelector("div.content-wrapper.clearfix"));
 
                         // Extrai o valor de avaliação
-                        string valorAvaliacao = divPrincipal.FindElement(By.XPath(".//p[contains(text(), 'Valor de avaliação')]")).Text;
+                        //string valorAvaliacao = divPrincipal.FindElement(By.XPath(".//p[contains(text(), 'Valor de avaliação')]")).Text;
+                        string valorAvaliacao = BuscaElemento(divPrincipal, "Valor de avaliação");
                         Console.WriteLine("Valor de avaliação: " + valorAvaliacao);
 
                         // Extrai o tipo de imóvel
-                        string tipoImovel = divPrincipal.FindElement(By.XPath(".//span[contains(text(), 'Tipo de imóvel')]/strong")).Text;
+                        string tipoImovel = BuscaElemento(divPrincipal, "Tipo de imóvel");
                         Console.WriteLine("Tipo de imóvel: " + tipoImovel);
 
                         // Extrai a área privativa
-                        string areaPrivativa = divPrincipal.FindElement(By.XPath(".//span[contains(text(), 'Área privativa')]/strong")).Text;
+                        string areaPrivativa = BuscaElemento(divPrincipal, "Área privativa");
                         Console.WriteLine("Área privativa: " + areaPrivativa);
 
                         // Extrai o número do item
-                        string numeroItem = divPrincipal.FindElement(By.XPath(".//span[contains(text(), 'Número do item')]/strong")).Text;
+                        string numeroItem = BuscaElemento(divPrincipal, "Número do item");
                         Console.WriteLine("Número do item: " + numeroItem);
 
                         // Extrai informações com base na classe "fa-info-circle"
@@ -176,6 +175,18 @@ namespace ConsultaImoveisLeilaoCaixa
             }
         }
 
+        #region BuscaElemento
+        public string BuscaElemento(IWebElement divPrincipal, string textoProcurado)
+        {
+            IWebElement item = divPrincipal.FindElements(By.XPath($".//span[contains(text(), '{textoProcurado}')]/strong")).FirstOrDefault();
+            if (item != null)
+                return item.Text;
+            else
+                return String.Empty;
+        }
+        #endregion
+
+        #region ExtrairNumeroImovel
         public string ExtrairNumeroImovel(string onclickValue)
         {
             // Este é apenas um exemplo básico. Você pode precisar ajustar conforme a estrutura real do atributo onclick.
@@ -193,5 +204,6 @@ namespace ConsultaImoveisLeilaoCaixa
 
             return null;
         }
+        #endregion
     }
 }

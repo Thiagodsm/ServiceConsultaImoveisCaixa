@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsultaImoveisLeilaoCaixa", "ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa.csproj", "{56E237BE-54FE-4896-AD90-604D918B6C4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsultaImoveisLeilaoCaixa", "ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa.csproj", "{56E237BE-54FE-4896-AD90-604D918B6C4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsultaLicitacaoImoveisCaixa", "ConsultaLicitacaoImoveisCaixa\ConsultaLicitacaoImoveisCaixa.csproj", "{C03FC85D-73B5-4B92-A952-34FCC0A426FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{56E237BE-54FE-4896-AD90-604D918B6C4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{56E237BE-54FE-4896-AD90-604D918B6C4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{56E237BE-54FE-4896-AD90-604D918B6C4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C03FC85D-73B5-4B92-A952-34FCC0A426FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C03FC85D-73B5-4B92-A952-34FCC0A426FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C03FC85D-73B5-4B92-A952-34FCC0A426FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C03FC85D-73B5-4B92-A952-34FCC0A426FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

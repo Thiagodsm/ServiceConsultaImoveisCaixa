@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk.Worker">
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-ConsultaImoveisLeilaoCaixa-C3D39A49-4772-46EA-89B7-D55FCD28C8AB</UserSecretsId>
   </PropertyGroup>

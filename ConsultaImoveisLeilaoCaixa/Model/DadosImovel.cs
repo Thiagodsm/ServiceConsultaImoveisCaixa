@@ -17,7 +17,6 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public string tipoImovel { get; set; }
         public string quartos { get; set; }
         public string garagem { get; set; }
-        public string numeroItem { get; set; }
         public string numeroImovel { get; set; }
         public string matricula { get; set; }
         public string comarca { get; set; }

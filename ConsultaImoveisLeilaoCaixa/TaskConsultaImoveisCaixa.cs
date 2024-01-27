@@ -188,9 +188,9 @@ namespace ConsultaImoveisLeilaoCaixa
             DadosImovel imovel = new DadosImovel();
             imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, "Valor de avaliação");
             // Quando a modalidade de venda for leilao
-            imovel = ExtraiValoresLeilao(divPrincipal, "Valor mínimo de venda 1º Leilão");
+            //imovel = ExtraiValoresLeilao(divPrincipal, "Valor mínimo de venda 1º Leilão");
             // Quando a modadelidade de venda for licitação aberta, venda online ou venda direta
-            imovel.valorMinimoVenda = ExtraiValorMinimoVenda(divPrincipal, "Valor mínimo de venda");
+            imovel.valorMinimoVenda = ExtraiDadosImovel(divPrincipal, "Valor mínimo de venda");
 
             IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
             imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
@@ -240,13 +240,29 @@ namespace ConsultaImoveisLeilaoCaixa
         #region ExtraiDadosImovel
         public string ExtraiDadosImovel(IWebElement divPrincipal, string textoProcurado)
         {
-            IWebElement item = divPrincipal.FindElements(By.XPath($".//span[contains(text(), '{textoProcurado}')]")).FirstOrDefault();
+            string xpath;
+            switch (textoProcurado)
+            {
+                case "Valor de avaliação":
+                    xpath = $".//p[contains(text(),'{textoProcurado}')]";
+                    break;
+                case "Valor mínimo de venda":
+                    xpath = $".//p[contains(text(),'{textoProcurado}')]/b";
+                    break;
+                default:
+                    xpath = $".//span[contains(text(), '{textoProcurado}')]";
+                    break;
+            }
+
+            //IWebElement item = divPrincipal.FindElements(By.XPath($".//span[contains(text(), '{textoProcurado}')]")).FirstOrDefault();
+            IWebElement item = divPrincipal.FindElements(By.XPath(xpath)).FirstOrDefault();
             if (item != null)
             {
                 string textoTratado = item.Text
                     .Replace($"{textoProcurado}:", "")
                     .Replace($"{textoProcurado} = ", "")
                     .Replace($"{textoProcurado} - ", "")
+                    .Replace($"{textoProcurado}: R$ ", "")
                     .Replace($"{textoProcurado} ", "");
                 textoTratado = Regex.Replace(textoTratado, @"\s+", " ").Trim();
                 return textoTratado;
@@ -292,22 +308,6 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion
 
-        #region ExtraiValorMinimoVenda
-        public string ExtraiValorMinimoVenda(IWebElement divPrincipal, string textoProcurado)
-        {
-            return "";
-            IWebElement item = divPrincipal.FindElements(By.XPath($".//p[contains(text(), '{textoProcurado}')]/b")).FirstOrDefault();
-            if (item != null)
-            {
-                // Extrai o valor mínimo de venda
-                string valorMinimoVendaTexto = item.FindElement(By.XPath(".//p[contains(text(), 'Valor mínimo de venda')]/b")).Text;
-                string valorMinimoVenda = valorMinimoVendaTexto.Split(' ')[2];
-            }
-            else
-                return String.Empty;
-        }
-        #endregion ExtraiValorMinimoVenda
-
         #region ExtraiValoresLeilao
         public DadosImovel ExtraiValoresLeilao(IWebElement divPrincipal, string textoProcurado)
         {
@@ -315,6 +315,33 @@ namespace ConsultaImoveisLeilaoCaixa
             // Localiza a div.related-box dentro da divPrincipal
             IWebElement divRelatedBox = divPrincipal.FindElement(By.CssSelector("div.related-box"));
             IWebElement item = divRelatedBox.FindElements(By.XPath($".//p[contains(text(), '{textoProcurado}')]/b")).FirstOrDefault();
+
+            
+
+            // Valor mínimo de venda 1º Leilão
+            string xpathMinimo1Leilao = ".//div[@class='content']//p[contains(text(),'1º Leilão')]/span[@style='text-decoration: line-through;']/text()";
+            
+            xpathMinimo1Leilao = ".//div[@class='content']//p[contains(text(),'1º Leilão')]/b/text()";
+
+            // Valor mínimo de venda 2º Leilão
+            string xpathMinimo2Leilao = ".//div[@class='content']//p[contains(text(),'2º Leilão')]/b/text()";
+
+            // Valor mínimo de venda 2º Leilão
+            xpathMinimo2Leilao = ".//div[@class='content']//p[contains(text(),'2º Leilão')]/text()";
+
+            //---------------------------------------------------------------------------------------------------------------------------------------
+
+            //// Situação (comentada)
+            //string xpathSituacaoComentada = ".//div[@class='content']//p[contains(span[@style='text-decoration: line-through;']/text(), 'Situação')]/span/strong/text()";
+
+            //// Situação (não comentada)
+            //string xpathSituacaoNaoComentada = ".//div[@class='content']//p[not(span[@style='text-decoration: line-through;']) and contains(span/text(), 'Situação')]/span/strong/text()";
+
+            //// Situação (span comentado)
+            //string xpathSituacaoComentada = ".//div[@class='content']//p[span[@style='text-decoration: line-through;']]/span/strong/text()";
+
+            //// Situação (span comentado)
+            //string xpathSituacaoComentada = ".//div[@class='content']//p[span[@style='text-decoration: line-through;']]/span/strong/text()";
 
             if (item != null)
             {

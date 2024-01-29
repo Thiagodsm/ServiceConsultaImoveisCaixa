@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using ConsultaImoveisLeilaoCaixa.Util;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
@@ -106,12 +107,11 @@ namespace ConsultaImoveisLeilaoCaixa
                             Thread.Sleep(10000);
                         }
                     }
+                    // Removendo Id's duplicados
+                    numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
                     #endregion Buscando Id's dos imoveis
 
                     #region Extraindo dados dos imoveis
-                    // Removendo Id's duplicados
-                    numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
-
                     List<DadosImovel> dadosImoveis = new List<DadosImovel>();
 
                     // Itera sobre os números de imóveis processados
@@ -155,7 +155,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     if (!String.IsNullOrWhiteSpace(e.Message))
                     {
                         driver.Quit();
-                        Thread.Sleep(30000);
+                        Thread.Sleep(10000);
                         await ExecuteAsync(stoppingToken);
                     }
                 }
@@ -186,40 +186,39 @@ namespace ConsultaImoveisLeilaoCaixa
         public DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal)
         {
             DadosImovel imovel = new DadosImovel();
-            imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, "Valor de avaliação");
-            // Quando a modalidade de venda for leilao
-            //imovel = ExtraiValoresLeilao(divPrincipal, "Valor mínimo de venda 1º Leilão");
-            // Quando a modadelidade de venda for licitação aberta, venda online ou venda direta
-            imovel.valorMinimoVenda = ExtraiDadosImovel(divPrincipal, "Valor mínimo de venda");
-
+            imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.VALOR_AVALIACAO);
+            imovel.valorMinimoPrimeiraVenda = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA);
+            imovel.valorMinimoSegundaVenda = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA);
+            imovel.valorMinimoVenda = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_VENDA);
+            imovel.desconto = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.DESCONTO);
             IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
             imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
             
-            imovel.tipoImovel = ExtraiDadosImovel(divPrincipal, "Tipo de imóvel");
-            imovel.quartos = ExtraiDadosImovel(divPrincipal, "Quartos");
-            imovel.garagem = ExtraiDadosImovel(divPrincipal, "Garagem");
-            imovel.numeroImovel = ExtraiDadosImovel(divPrincipal, "Número do imóvel");
-            imovel.matricula = ExtraiDadosImovel(divPrincipal, "Matrícula(s)");
-            imovel.comarca = ExtraiDadosImovel(divPrincipal, "Comarca");
-            imovel.oficio = ExtraiDadosImovel(divPrincipal, "Ofício");
-            imovel.inscricaoImobiliaria = ExtraiDadosImovel(divPrincipal, "Inscrição imobiliária");
-            imovel.averbacaoLeilaoNegativos = ExtraiDadosImovel(divPrincipal, "Averbação dos leilões negativos");
-            imovel.areaTotal = ExtraiDadosImovel(divPrincipal, "Área total");
-            imovel.areaPrivativa = ExtraiDadosImovel(divPrincipal, "Área privativa");
-            imovel.areaTerreno = ExtraiDadosImovel(divPrincipal, "Área do terreno");
+            imovel.tipoImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.TIPO_IMOVEL);
+            imovel.quartos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.QUARTOS);
+            imovel.garagem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.GARAGEM);
+            imovel.numeroImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_IMOVEL);
+            imovel.matricula = ExtraiDadosImovel(divPrincipal, PropriedadesSite.MATRICULA);
+            imovel.comarca = ExtraiDadosImovel(divPrincipal, PropriedadesSite.COMARCA);
+            imovel.oficio = ExtraiDadosImovel(divPrincipal, PropriedadesSite.OFICIO);
+            imovel.inscricaoImobiliaria = ExtraiDadosImovel(divPrincipal, PropriedadesSite.INSCRICAO_IMOBILIARIA);
+            imovel.averbacaoLeilaoNegativos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AVERBACAO_LEILAO_NEGATIVOS);
+            imovel.areaTotal = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TOTAL);
+            imovel.areaPrivativa = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_PRIVATIVA);
+            imovel.areaTerreno = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TERRENO);
 
             imovel.dadosVendaImovel = new DadosVendaImovel();
-            imovel.dadosVendaImovel.edital = ExtraiDadosImovel(divPrincipal, "Edital");
-            imovel.dadosVendaImovel.numeroItem = ExtraiDadosImovel(divPrincipal, "Número do item");
-            imovel.dadosVendaImovel.leiloeiro = ExtraiDadosImovel(divPrincipal, "Leiloeiro(a)");
+            imovel.dadosVendaImovel.edital = ExtraiDadosImovel(divPrincipal, PropriedadesSite.EDITAL);
+            imovel.dadosVendaImovel.numeroItem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_ITEM);
+            imovel.dadosVendaImovel.leiloeiro = ExtraiDadosImovel(divPrincipal, PropriedadesSite.LEILOEIRO);
             // Quando a modalidade de venda for leilao
-            imovel.dadosVendaImovel.dataPrimeiroLeilao = ExtraiDatasLeilao(divPrincipal, "Data do 1º Leilão");
-            imovel.dadosVendaImovel.dataSegundoLeilao = ExtraiDatasLeilao(divPrincipal, "Data do 2º Leilão");
+            imovel.dadosVendaImovel.dataPrimeiroLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_PRIMEIRO_LEILAO);
+            imovel.dadosVendaImovel.dataSegundoLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_SEGUNDO_LEILAO);
             // Quando a modadelidade de venda for licitação aberta
-            imovel.dadosVendaImovel.dataLicitacao = ExtraiDatasLeilao(divPrincipal, "Data da Licitação Aberta");
+            imovel.dadosVendaImovel.dataLicitacao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_LICITACAO_ABERTA);
 
-            imovel.dadosVendaImovel.endereco = ExtraiDadosVendaImovel(divPrincipal, "Endereço");
-            imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, "Descrição");
+            imovel.dadosVendaImovel.endereco = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.ENDERECO);
+            imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
 
             // Extrai informações com base na classe "fa-info-circle"
             ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
@@ -243,10 +242,10 @@ namespace ConsultaImoveisLeilaoCaixa
             string xpath;
             switch (textoProcurado)
             {
-                case "Valor de avaliação":
+                case PropriedadesSite.VALOR_AVALIACAO:
                     xpath = $".//p[contains(text(),'{textoProcurado}')]";
                     break;
-                case "Valor mínimo de venda":
+                case PropriedadesSite.VALOR_MINIMO_VENDA:
                     xpath = $".//p[contains(text(),'{textoProcurado}')]/b";
                     break;
                 default:
@@ -308,55 +307,38 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion
 
-        #region ExtraiValoresLeilao
-        public DadosImovel ExtraiValoresLeilao(IWebElement divPrincipal, string textoProcurado)
+        #region ExtrairValor
+        public static string ExtrairValor(string text, string parameter)
         {
-            DadosImovel imovel = new DadosImovel();
-            // Localiza a div.related-box dentro da divPrincipal
-            IWebElement divRelatedBox = divPrincipal.FindElement(By.CssSelector("div.related-box"));
-            IWebElement item = divRelatedBox.FindElements(By.XPath($".//p[contains(text(), '{textoProcurado}')]/b")).FirstOrDefault();
+            string pattern;
 
-            
-
-            // Valor mínimo de venda 1º Leilão
-            string xpathMinimo1Leilao = ".//div[@class='content']//p[contains(text(),'1º Leilão')]/span[@style='text-decoration: line-through;']/text()";
-            
-            xpathMinimo1Leilao = ".//div[@class='content']//p[contains(text(),'1º Leilão')]/b/text()";
-
-            // Valor mínimo de venda 2º Leilão
-            string xpathMinimo2Leilao = ".//div[@class='content']//p[contains(text(),'2º Leilão')]/b/text()";
-
-            // Valor mínimo de venda 2º Leilão
-            xpathMinimo2Leilao = ".//div[@class='content']//p[contains(text(),'2º Leilão')]/text()";
-
-            //---------------------------------------------------------------------------------------------------------------------------------------
-
-            //// Situação (comentada)
-            //string xpathSituacaoComentada = ".//div[@class='content']//p[contains(span[@style='text-decoration: line-through;']/text(), 'Situação')]/span/strong/text()";
-
-            //// Situação (não comentada)
-            //string xpathSituacaoNaoComentada = ".//div[@class='content']//p[not(span[@style='text-decoration: line-through;']) and contains(span/text(), 'Situação')]/span/strong/text()";
-
-            //// Situação (span comentado)
-            //string xpathSituacaoComentada = ".//div[@class='content']//p[span[@style='text-decoration: line-through;']]/span/strong/text()";
-
-            //// Situação (span comentado)
-            //string xpathSituacaoComentada = ".//div[@class='content']//p[span[@style='text-decoration: line-through;']]/span/strong/text()";
-
-            if (item != null)
+            switch (parameter)
             {
-                string valoresMinimosTexto = divRelatedBox.FindElement(By.XPath($".//p[contains(text(), '{textoProcurado}')]/b")).Text;
-
-                List<string> valoresMinimosLeilao = valoresMinimosTexto.Split('\n').ToList();
-                if (valoresMinimosLeilao.Count > 0)
-                {
-                    imovel.valorMinimoPrimeiraVenda = valoresMinimosLeilao[0].Replace("Valor mínimo de venda 1º Leilão: R$ ", "");
-                    imovel.valorMinimoSegundaVenda = valoresMinimosLeilao[1].Replace("Valor mínimo de venda 2º Leilão: R$ ", "");
-                    return imovel;
-                }
+                case PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA:
+                    pattern = @"Valor mínimo de venda 1º Leilão: R\$ (\d+.\d+,\d\d)";
+                    break;
+                case PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA:
+                    pattern = @"Valor mínimo de venda 2º Leilão: R\$ (\d+.\d+,\d\d)";
+                    break;
+                case PropriedadesSite.VALOR_MINIMO_VENDA:
+                    pattern = @"Valor mínimo de venda: R\$ (\d+.\d+,\d\d)";
+                    break;
+                case PropriedadesSite.DESCONTO:
+                    pattern = @"\(\s*desconto de (\d+(,\d+)?)%\)";
+                    break;
+                default:
+                    return "";
             }
-            return imovel;
+
+            Match match = Regex.Match(text, pattern);
+
+            if (match.Success)
+            {
+                return parameter == "desconto" ? match.Groups[1].Value : match.Groups[1].Value;
+            }
+
+            return "";
         }
-        #endregion ExtraiDadosLeilao
+        #endregion ExtrairValor
     }
 }

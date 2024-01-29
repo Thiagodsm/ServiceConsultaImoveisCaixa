@@ -12,6 +12,7 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public DadosVendaImovel dadosVendaImovel { get; set; }
         public string valorAvaliacao { get; set; }
         public string valorMinimoVenda { get; set; }
+        public string desconto { get; set; }
         public string valorMinimoPrimeiraVenda { get; set; }
         public string valorMinimoSegundaVenda { get; set; }
         public string tipoImovel { get; set; }
@@ -26,6 +27,7 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public string areaTotal { get; set; }
         public string areaPrivativa { get; set; }
         public string areaTerreno { get; set; }
+        public string situacao { get; set; }
 
     }
 }

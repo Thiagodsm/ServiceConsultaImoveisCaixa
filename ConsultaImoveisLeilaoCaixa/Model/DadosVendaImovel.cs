@@ -13,5 +13,6 @@
         public List<string> formasDePagamento { get; set; }
         public string linkMatriculaImovel { get; set; }
         public string linkEditalImovel { get; set; }
+        public List<string> LinkImagensImovel { get; set; }
     }
 }

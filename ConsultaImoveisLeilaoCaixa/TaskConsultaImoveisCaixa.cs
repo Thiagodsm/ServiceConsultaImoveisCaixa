@@ -129,9 +129,11 @@ namespace ConsultaImoveisLeilaoCaixa
                         // Obtenha os dados esperados
                         // Localiza a div principal que contém as informações
                         IWebElement divPrincipal = driver.FindElement(By.CssSelector("div.content-wrapper.clearfix"));
+                        // Localiza a div pelo ID "galeria-imagens"
+                        IWebElement divGaleriaImagens = driver.FindElement(By.Id("galeria-imagens"));
 
                         // Definindo o objeto a partir da div principal
-                        DadosImovel imovel = DefineObjeto(driver, divPrincipal);
+                        DadosImovel imovel = DefineObjeto(driver, divPrincipal, divGaleriaImagens);
                         dadosImoveis.Add(imovel);
 
                         // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
@@ -152,6 +154,12 @@ namespace ConsultaImoveisLeilaoCaixa
                     imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
                     imoveisLeilaoCaixa.imoveis = dadosImoveis;
 
+                    // Ler o conteúdo do arquivo JSON
+                    string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
+                    ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
+
+
+
                     if (imoveisLeilaoCaixa.imoveis.Count > 0)
                     {
                         //dadosImoveis = OrdenaListaImoveis(dadosImoveis);
@@ -161,23 +169,13 @@ namespace ConsultaImoveisLeilaoCaixa
                         string tokenTelegram = Config.BotToken;
                         long chatIdTelegram = Config.ChatId;
 
-                        // Passo 1: Ler o conteúdo do arquivo JSON
-                        string conteudoJson = LerArquivoJson(caminhoArquivo);
-
-                        bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, "Mensagem com os dados dos imóveis");
+                        string mensagem = "";
+                        foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
+                        {
+                            mensagem = MontaMensagamTelegram(item);
+                            bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem);
+                        }
                     }
-
-                    //if (conteudoJson != null)
-                    //{
-                    //    // Passo 2: Converter JSON para objeto
-                    //    DadosImovel objetoImoveis = ConverterJsonParaObjeto<DadosImovel>(conteudoJson);
-
-                    //    if (objetoImoveis != null)
-                    //    {
-                    //        // Passo 3: Enviar mensagem para o Telegram
-                    //        EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, "Mensagem com os dados dos imóveis");
-                    //    }
-                    //}
                 }
                 catch (Exception e)
                 {
@@ -213,7 +211,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion
 
         #region DefineObjeto
-        public DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal)
+        public DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal, IWebElement divGaleriaImagens)
         {
             DadosImovel imovel = new DadosImovel();
             imovel.visivelCaixaImoveis = true;
@@ -264,6 +262,19 @@ namespace ConsultaImoveisLeilaoCaixa
                     imovel.dadosVendaImovel.formasDePagamento.Add(infoText);
                 }
             }
+
+            IList<IWebElement> imagens = divGaleriaImagens.FindElements(By.CssSelector("img"));
+            imovel.dadosVendaImovel.LinkImagensImovel = new List<string>();
+            foreach (var imagem in imagens)
+            {
+                string imageUrl = imagem.GetAttribute("src");
+                if (!string.IsNullOrEmpty(imageUrl))
+                {
+                    //byte[] imagemBytes = BaixarImagem(imageUrl);
+                    imovel.dadosVendaImovel.LinkImagensImovel.Add(imageUrl);
+                }
+            }
+            imovel.dadosVendaImovel.LinkImagensImovel = imovel.dadosVendaImovel.LinkImagensImovel.Distinct().ToList();
             return imovel;
         }
         #endregion DefineObjeto
@@ -498,28 +509,87 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion ExtrairLinkEditalImovel
 
+        #region BaixarImagem
+        public byte[] BaixarImagem(string url)
+        {
+            using (HttpClient httpClient = new HttpClient())
+            {
+                HttpResponseMessage response = httpClient.GetAsync(url).Result;
 
+                if (response.IsSuccessStatusCode)
+                {
+                    return response.Content.ReadAsByteArrayAsync().Result;
+                }
+                else
+                {
+                    Console.WriteLine($"Falha ao baixar a imagem. Status: {response.StatusCode}");
+                    return null;
+                }
+            }
+        }
+        #endregion BaixarImagem
 
-        public T ConverterJsonParaObjeto<T>(string conteudoJson)
+        #region ConverterJsonParaObjeto
+        public ImoveisLeilaoCaixa ConverterJsonParaObjeto(string conteudoJson)
         {
             try
             {
-                // Converte o conteúdo JSON para um objeto C#
-                T objeto = JsonConvert.DeserializeObject<T>(conteudoJson);
-                return objeto;
+                ImoveisLeilaoCaixa imoveisLeilaoCaixa = JsonConvert.DeserializeObject<ImoveisLeilaoCaixa>(conteudoJson);
+                return imoveisLeilaoCaixa;
             }
             catch (Exception ex)
             {
-                // Lida com erros ao converter JSON para objeto
-                Console.WriteLine($"Erro ao converter JSON para objeto: {ex.Message}");
-                return default(T);
+                _logger.LogError(ex.Message);
+                throw;
             }
         }
+        #endregion ConverterJsonParaObjeto
 
-        
+        #region MontaMensagamTelegram
+        public string MontaMensagamTelegram(DadosImovel imovel)
+        {
+            string mensagem = 
+                    $"Nome do Loteamento: {VerificarValorNuloOuVazio(imovel.nomeLoteamento)}\n" +
+                    $"Valor de avaliação: R$ {VerificarValorNuloOuVazio(imovel.valorAvaliacao)}\n" +
+                    $"Valor minimo de venda: R$ {VerificarValorNuloOuVazio(imovel.valorMinimoVenda)}\n" +
+                    $"Desconto: {VerificarValorNuloOuVazio(imovel.desconto)}%\n" +
+                    $"Valor minimo de venda 1° Leilão: R$ {VerificarValorNuloOuVazio(imovel.valorMinimoPrimeiraVenda)}\n" +
+                    $"Valor minimo de venda 2° Leilão: R$ {VerificarValorNuloOuVazio(imovel.valorMinimoSegundaVenda)}\n" +
+                    $"Tipo de imóvel: {VerificarValorNuloOuVazio(imovel.tipoImovel)}\n" +
+                    $"Quartos: {VerificarValorNuloOuVazio(imovel.quartos)}\n" +
+                    $"Garagem: {VerificarValorNuloOuVazio(imovel.garagem)}\n" +
+                    $"Numero do imóvel: {VerificarValorNuloOuVazio(imovel.numeroImovel)}\n" +
+                    $"Matricula(s): {VerificarValorNuloOuVazio(imovel.matricula)}\n" +
+                    $"Comarca: {VerificarValorNuloOuVazio(imovel.comarca)}\n" +
+                    $"Oficio: {VerificarValorNuloOuVazio(imovel.oficio)}\n" +
+                    $"Inscricao imobiliaria: {VerificarValorNuloOuVazio(imovel.inscricaoImobiliaria)}\n" +
+                    $"Averbação dos leilões negativos: {VerificarValorNuloOuVazio(imovel.averbacaoLeilaoNegativos)}\n" +
+                    $"Area total: {VerificarValorNuloOuVazio(imovel.areaTotal)}\n" +
+                    $"Area privativa: {VerificarValorNuloOuVazio(imovel.areaPrivativa)}\n" +
+                    $"Area do terreno: {VerificarValorNuloOuVazio(imovel.areaTerreno)}\n" +
+                    $"Situação: {VerificarValorNuloOuVazio(imovel.situacao)}\n" +
 
+                    $"Edital: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.edital)}\n" +
+                    $"Número do Item: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.numeroItem)}\n" +
+                    $"Leiloeiro: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.leiloeiro)}\n" +
+                    $"Data da Licitação: {imovel.dadosVendaImovel.dataLicitacao}\n" +
+                    $"Data do 1° Leilão: {imovel.dadosVendaImovel.dataPrimeiroLeilao}\n" +
+                    $"Data do 2° Leilão: {imovel.dadosVendaImovel.dataSegundoLeilao}\n" +
+                    $"Endereço: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.endereco)}\n" +
+                    $"Descrição: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.descricao)}\n" +
+                    $"Link Matrícula Imóvel: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.linkMatriculaImovel)}\n" +
+                    $"Link Edital Imóvel: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.linkEditalImovel)}\n";
+           
+            return mensagem;
+        }
 
-        //Metodos para terminar abaixo
+        public string VerificarValorNuloOuVazio(string valor, string valorPadrao = "-")
+        {
+            return String.IsNullOrWhiteSpace(valor) ? valorPadrao : valor;
+        }
+        #endregion MontaMensagamTelegram
+
+        // para terminar
         #region OrdenaListaImoveis
         public List<DadosImovel> OrdenaListaImoveis(List<DadosImovel> dadosImoveis)
         {

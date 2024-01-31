@@ -1,13 +1,13 @@
 using ConsultaImoveisLeilaoCaixa.Model;
+using ConsultaImoveisLeilaoCaixa.Util;
+using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
-using SeleniumExtras.WaitHelpers;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
+using System.Globalization;
 using System.Text.RegularExpressions;
-using ConsultaImoveisLeilaoCaixa.Util;
+using Telegram.Bot;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
@@ -22,9 +22,11 @@ namespace ConsultaImoveisLeilaoCaixa
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            TelegramPollingService telegramPollingService = new TelegramPollingService();
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                telegramPollingService.IniciarPolling();
 
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
@@ -144,10 +146,29 @@ namespace ConsultaImoveisLeilaoCaixa
                     driver.Quit();
                     #endregion Extraindo dados dos imoveis
 
-                    foreach (var item in dadosImoveis)
-                    {
+                    //dadosImoveis = OrdenaListaImoveis(dadosImoveis);
+                    bool succes = SalvarListaComoJson(dadosImoveis, "C:/imoveis/imoveis.json");
 
-                    }
+                    string caminhoArquivo = @"C:\imoveis\imoveis.json";
+                    string tokenTelegram = Config.BotToken;
+                    long chatIdTelegram = Config.ChatId;
+
+                    // Passo 1: Ler o conteúdo do arquivo JSON
+                    string conteudoJson = LerArquivoJson(caminhoArquivo);
+
+                    bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, "Mensagem com os dados dos imóveis");
+
+                    //if (conteudoJson != null)
+                    //{
+                    //    // Passo 2: Converter JSON para objeto
+                    //    DadosImovel objetoImoveis = ConverterJsonParaObjeto<DadosImovel>(conteudoJson);
+
+                    //    if (objetoImoveis != null)
+                    //    {
+                    //        // Passo 3: Enviar mensagem para o Telegram
+                    //        EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, "Mensagem com os dados dos imóveis");
+                    //    }
+                    //}
                 }
                 catch (Exception e)
                 {
@@ -187,13 +208,14 @@ namespace ConsultaImoveisLeilaoCaixa
         {
             DadosImovel imovel = new DadosImovel();
             imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.VALOR_AVALIACAO);
-            imovel.valorMinimoPrimeiraVenda = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA);
-            imovel.valorMinimoSegundaVenda = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA);
-            imovel.valorMinimoVenda = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_VENDA);
-            imovel.desconto = ExtrairValor(imovel.valorAvaliacao, PropriedadesSite.DESCONTO);
+            imovel.valorMinimoPrimeiraVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA);
+            imovel.valorMinimoSegundaVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA);
+            imovel.valorMinimoVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_VENDA);
+            imovel.desconto = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.DESCONTO);
+            imovel.valorAvaliacao = Regex.Match(imovel.valorAvaliacao, @"R\$ (\d{1,3}(?:\.\d{3})*(?:,\d{2})?)").Groups[1].Value;
             IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
             imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
-            
+
             imovel.tipoImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.TIPO_IMOVEL);
             imovel.quartos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.QUARTOS);
             imovel.garagem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.GARAGEM);
@@ -206,17 +228,15 @@ namespace ConsultaImoveisLeilaoCaixa
             imovel.areaTotal = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TOTAL);
             imovel.areaPrivativa = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_PRIVATIVA);
             imovel.areaTerreno = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TERRENO);
+            imovel.situacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.SITUACAO);
 
             imovel.dadosVendaImovel = new DadosVendaImovel();
             imovel.dadosVendaImovel.edital = ExtraiDadosImovel(divPrincipal, PropriedadesSite.EDITAL);
             imovel.dadosVendaImovel.numeroItem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_ITEM);
             imovel.dadosVendaImovel.leiloeiro = ExtraiDadosImovel(divPrincipal, PropriedadesSite.LEILOEIRO);
-            // Quando a modalidade de venda for leilao
             imovel.dadosVendaImovel.dataPrimeiroLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_PRIMEIRO_LEILAO);
             imovel.dadosVendaImovel.dataSegundoLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_SEGUNDO_LEILAO);
-            // Quando a modadelidade de venda for licitação aberta
             imovel.dadosVendaImovel.dataLicitacao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_LICITACAO_ABERTA);
-
             imovel.dadosVendaImovel.endereco = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.ENDERECO);
             imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
 
@@ -245,15 +265,14 @@ namespace ConsultaImoveisLeilaoCaixa
                 case PropriedadesSite.VALOR_AVALIACAO:
                     xpath = $".//p[contains(text(),'{textoProcurado}')]";
                     break;
-                case PropriedadesSite.VALOR_MINIMO_VENDA:
-                    xpath = $".//p[contains(text(),'{textoProcurado}')]/b";
+                case PropriedadesSite.SITUACAO:
+                    xpath = $".//span[contains(., '{textoProcurado}')]";
                     break;
                 default:
                     xpath = $".//span[contains(text(), '{textoProcurado}')]";
                     break;
             }
 
-            //IWebElement item = divPrincipal.FindElements(By.XPath($".//span[contains(text(), '{textoProcurado}')]")).FirstOrDefault();
             IWebElement item = divPrincipal.FindElements(By.XPath(xpath)).FirstOrDefault();
             if (item != null)
             {
@@ -290,7 +309,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion ExtraiDadosVendaImovel
 
         #region ExtraiDatasLeilao
-        public string ExtraiDatasLeilao(IWebElement divPrincipal, string textoProcurado)
+        public DateTime? ExtraiDatasLeilao(IWebElement divPrincipal, string textoProcurado)
         {
             // Localiza a div.related-box dentro da divPrincipal
             IWebElement divRelatedBox = divPrincipal.FindElement(By.CssSelector("div.related-box"));
@@ -300,15 +319,36 @@ namespace ConsultaImoveisLeilaoCaixa
             {
                 string textoTratado = item.Text.Replace($"{textoProcurado} - ", "");
                 textoTratado = Regex.Replace(textoTratado, @"\s+", " ").Trim();
-                return textoTratado;
+                DateTime? dataHora = ConverterParaData(textoTratado);
+                return dataHora;
             }
             else
-                return String.Empty;
+                return null;
         }
         #endregion
 
-        #region ExtrairValor
-        public static string ExtrairValor(string text, string parameter)
+        #region ConverterParaData
+        public DateTime? ConverterParaData(string textoTratado)
+        {
+            // Verifica se a string está vazia
+            if (string.IsNullOrWhiteSpace(textoTratado))
+                return null;
+
+            // Define os formatos de data que podem ser encontrados
+            string[] formatos = { "dd/MM/yyyy - HH'h'mm", "dd/MM/yyyy" };
+
+            // Tenta fazer a conversão usando os formatos definidos
+            DateTime dataConvertida;
+            if (DateTime.TryParseExact(textoTratado, formatos, CultureInfo.InvariantCulture, DateTimeStyles.None, out dataConvertida))
+            {
+                return dataConvertida;
+            }
+            return null;
+        }
+        #endregion ConverterParaData
+
+        #region ExtraiValor
+        public static string ExtraiValor(string text, string parameter)
         {
             string pattern;
 
@@ -339,6 +379,112 @@ namespace ConsultaImoveisLeilaoCaixa
 
             return "";
         }
-        #endregion ExtrairValor
+        #endregion ExtraiValor
+
+        #region SalvarListaComoJson
+        public bool SalvarListaComoJson(List<DadosImovel> listaOrdenada, string filePath)
+        {
+            try
+            {
+                // Converte a lista ordenada para JSON
+                string jsonResult = JsonConvert.SerializeObject(listaOrdenada, Formatting.Indented);
+
+                // Garante que o diretório existe
+                string directoryPath = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
+                // Salva o JSON no arquivo
+                File.WriteAllText(filePath, jsonResult);
+
+                return true; // Indica que a operação foi bem-sucedida
+            }
+            catch (Exception ex)
+            {
+                ;
+                return false; // Indica que a operação falhou
+            }
+        }
+        #endregion SalvarListaComoJson
+
+        public string LerArquivoJson(string caminhoArquivo)
+        {
+            try
+            {
+                string conteudoJson = File.ReadAllText(caminhoArquivo);
+                return conteudoJson;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public T ConverterJsonParaObjeto<T>(string conteudoJson)
+        {
+            try
+            {
+                // Converte o conteúdo JSON para um objeto C#
+                T objeto = JsonConvert.DeserializeObject<T>(conteudoJson);
+                return objeto;
+            }
+            catch (Exception ex)
+            {
+                // Lida com erros ao converter JSON para objeto
+                Console.WriteLine($"Erro ao converter JSON para objeto: {ex.Message}");
+                return default(T);
+            }
+        }
+
+        public async Task<bool> EnviarMensagemTelegram(string token, long chatId, string mensagem)
+        {
+            try
+            {
+                // Inicializa o bot com o token
+                var botClient = new TelegramBotClient(token);
+
+                // Envia a mensagem para o chat especificado
+                await botClient.SendTextMessageAsync(chatId, mensagem);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Lida com erros ao enviar a mensagem
+                Console.WriteLine($"Erro ao enviar mensagem para o Telegram: {ex.Message}");
+                throw;
+            }
+        }
+
+
+        //Metodos para terminar abaixo
+        #region OrdenaListaImoveis
+        public List<DadosImovel> OrdenaListaImoveis(List<DadosImovel> dadosImoveis)
+        {
+            // Obtém a data atual
+            DateTime dataAtual = DateTime.Now;
+
+            // Filtra e ordena a lista com base na data atual e nas datas dos leilões
+            var listaOrdenada = dadosImoveis
+                .Where(imovel =>
+                    imovel.dadosVendaImovel.dataLicitacao >= dataAtual ||
+                    imovel.dadosVendaImovel.dataPrimeiroLeilao >= dataAtual ||
+                    imovel.dadosVendaImovel.dataSegundoLeilao >= dataAtual)
+                .OrderBy(imovel => new[]
+                {
+                    imovel.dadosVendaImovel.dataLicitacao,
+                    imovel.dadosVendaImovel.dataPrimeiroLeilao,
+                    imovel.dadosVendaImovel.dataSegundoLeilao
+                }
+                .Where(data => data >= dataAtual)
+                .Min())
+                .ToList();
+            return listaOrdenada;
+        }
+        #endregion OrdenaListaImoveis
+
+        #region ExtraiSituacao
+        #endregion ExtraiSituacao
     }
 }

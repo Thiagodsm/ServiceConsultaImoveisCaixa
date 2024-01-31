@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "CN/CEb6c3fjNECCuiLZXZ458A/t7TPzQZME0othYuTLqstQfc5SWjIwna57oRWcvOarW+JZyq2cnslGGW3k+vw==",
+  "dgSpecHash": "zQVJTIPdnlkY5OJJirTz16lbnKL/3owGL3INfRej2+8uqS0bl5s11hV0IanhNbp16C9Wr6JD67Bu7Wej8vWxZw==",
   "success": true,
   "projectFilePath": "C:\\Users\\thiag\\Desktop\\c#\\ConsultaImoveisLeilaoCaixa\\ConsultaImoveisLeilaoCaixa\\ConsultaImoveisLeilaoCaixa.csproj",
   "expectedPackageFiles": [
@@ -37,7 +37,8 @@
     "C:\\Users\\thiag\\.nuget\\packages\\system.diagnostics.eventlog\\6.0.0\\system.diagnostics.eventlog.6.0.0.nupkg.sha512",
     "C:\\Users\\thiag\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
     "C:\\Users\\thiag\\.nuget\\packages\\system.text.encodings.web\\6.0.0\\system.text.encodings.web.6.0.0.nupkg.sha512",
-    "C:\\Users\\thiag\\.nuget\\packages\\system.text.json\\6.0.0\\system.text.json.6.0.0.nupkg.sha512"
+    "C:\\Users\\thiag\\.nuget\\packages\\system.text.json\\6.0.0\\system.text.json.6.0.0.nupkg.sha512",
+    "C:\\Users\\thiag\\.nuget\\packages\\telegram.bot\\19.0.0\\telegram.bot.19.0.0.nupkg.sha512"
   ],
   "logs": []
 }

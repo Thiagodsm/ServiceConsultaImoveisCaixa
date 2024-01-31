@@ -51,3 +51,4 @@ C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\obj\Debug\net6.0\ConsultaImoveisLeilaoCaixa.pdb
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\obj\Debug\net6.0\ConsultaImoveisLeilaoCaixa.genruntimeconfig.cache
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\obj\Debug\net6.0\ref\ConsultaImoveisLeilaoCaixa.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\Telegram.Bot.dll

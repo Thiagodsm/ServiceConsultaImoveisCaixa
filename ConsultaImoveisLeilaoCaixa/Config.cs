@@ -10,6 +10,6 @@ namespace ConsultaImoveisLeilaoCaixa
     {
         public static string BotToken { get; set; }
         public static int ChatId { get; set; }
-
+        public static string CaminhoArquivoImoveis { get; set; }
     }
 }

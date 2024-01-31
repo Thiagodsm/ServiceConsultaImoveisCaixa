@@ -4,8 +4,10 @@ IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
-Config.BotToken = configuration.GetSection("Telegram:BotToken").Value;
-Config.ChatId = int.Parse(configuration.GetSection("Telegram:ChatId").Value);
+Config.CaminhoArquivoImoveis = configuration.GetSection("CaminhoArquivoImoveis").Value;
+Config.BotToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
+Config.ChatId = int.Parse(Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID"));
+
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>

@@ -26,7 +26,7 @@ namespace ConsultaImoveisLeilaoCaixa
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                telegramPollingService.IniciarPolling();
+                await telegramPollingService.IniciarPolling();
 
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
@@ -403,7 +403,7 @@ namespace ConsultaImoveisLeilaoCaixa
             }
             catch (Exception ex)
             {
-                ;
+                _logger.LogError(ex.Message);
                 return false; // Indica que a operação falhou
             }
         }
@@ -418,6 +418,7 @@ namespace ConsultaImoveisLeilaoCaixa
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex.Message);
                 throw;
             }
         }

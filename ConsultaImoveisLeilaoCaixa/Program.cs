@@ -5,6 +5,9 @@ IConfiguration configuration = new ConfigurationBuilder()
     .Build();
 
 Config.CaminhoArquivoImoveis = configuration.GetSection("CaminhoArquivoImoveis").Value;
+
+DotNetEnv.Env.Load();
+
 Config.BotToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
 Config.ChatId = int.Parse(Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID"));
 

@@ -25,8 +25,8 @@ namespace ConsultaImoveisLeilaoCaixa
             TelegramPollingService telegramPollingService = new TelegramPollingService();
             while (!stoppingToken.IsCancellationRequested)
             {
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                await telegramPollingService.IniciarPolling();
+                _logger.LogInformation("Iniciando o servico: {time}", DateTimeOffset.Now);
+                //await telegramPollingService.IniciarPolling();
 
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
@@ -146,17 +146,26 @@ namespace ConsultaImoveisLeilaoCaixa
                     driver.Quit();
                     #endregion Extraindo dados dos imoveis
 
-                    //dadosImoveis = OrdenaListaImoveis(dadosImoveis);
-                    bool succes = SalvarListaComoJson(dadosImoveis, "C:/imoveis/imoveis.json");
+                    // Salvando informacoes dos imoveis
+                    ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
+                    imoveisLeilaoCaixa.dataProcessamento = DateTime.Now;
+                    imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
+                    imoveisLeilaoCaixa.imoveis = dadosImoveis;
 
-                    string caminhoArquivo = @"C:\imoveis\imoveis.json";
-                    string tokenTelegram = Config.BotToken;
-                    long chatIdTelegram = Config.ChatId;
+                    if (imoveisLeilaoCaixa.imoveis.Count > 0)
+                    {
+                        //dadosImoveis = OrdenaListaImoveis(dadosImoveis);
+                        bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
 
-                    // Passo 1: Ler o conteúdo do arquivo JSON
-                    string conteudoJson = LerArquivoJson(caminhoArquivo);
+                        string caminhoArquivo = Config.CaminhoArquivoImoveis;
+                        string tokenTelegram = Config.BotToken;
+                        long chatIdTelegram = Config.ChatId;
 
-                    bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, "Mensagem com os dados dos imóveis");
+                        // Passo 1: Ler o conteúdo do arquivo JSON
+                        string conteudoJson = LerArquivoJson(caminhoArquivo);
+
+                        bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, "Mensagem com os dados dos imóveis");
+                    }
 
                     //if (conteudoJson != null)
                     //{
@@ -207,14 +216,15 @@ namespace ConsultaImoveisLeilaoCaixa
         public DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal)
         {
             DadosImovel imovel = new DadosImovel();
+            imovel.visivelCaixaImoveis = true;
+            IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
+            imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
             imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.VALOR_AVALIACAO);
             imovel.valorMinimoPrimeiraVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA);
             imovel.valorMinimoSegundaVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA);
             imovel.valorMinimoVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_VENDA);
             imovel.desconto = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.DESCONTO);
             imovel.valorAvaliacao = Regex.Match(imovel.valorAvaliacao, @"R\$ (\d{1,3}(?:\.\d{3})*(?:,\d{2})?)").Groups[1].Value;
-            IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
-            imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
 
             imovel.tipoImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.TIPO_IMOVEL);
             imovel.quartos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.QUARTOS);
@@ -239,6 +249,8 @@ namespace ConsultaImoveisLeilaoCaixa
             imovel.dadosVendaImovel.dataLicitacao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_LICITACAO_ABERTA);
             imovel.dadosVendaImovel.endereco = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.ENDERECO);
             imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
+            imovel.dadosVendaImovel.linkMatriculaImovel = ExtraiLinkMatriculaImovel(divPrincipal, PropriedadesSite.LINK_MATRICULA_IMOVEL);
+            imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
 
             // Extrai informações com base na classe "fa-info-circle"
             ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
@@ -381,64 +393,7 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion ExtraiValor
 
-        #region SalvarListaComoJson
-        public bool SalvarListaComoJson(List<DadosImovel> listaOrdenada, string filePath)
-        {
-            try
-            {
-                // Converte a lista ordenada para JSON
-                string jsonResult = JsonConvert.SerializeObject(listaOrdenada, Formatting.Indented);
-
-                // Garante que o diretório existe
-                string directoryPath = Path.GetDirectoryName(filePath);
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-
-                // Salva o JSON no arquivo
-                File.WriteAllText(filePath, jsonResult);
-
-                return true; // Indica que a operação foi bem-sucedida
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-                return false; // Indica que a operação falhou
-            }
-        }
-        #endregion SalvarListaComoJson
-
-        public string LerArquivoJson(string caminhoArquivo)
-        {
-            try
-            {
-                string conteudoJson = File.ReadAllText(caminhoArquivo);
-                return conteudoJson;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-                throw;
-            }
-        }
-
-        public T ConverterJsonParaObjeto<T>(string conteudoJson)
-        {
-            try
-            {
-                // Converte o conteúdo JSON para um objeto C#
-                T objeto = JsonConvert.DeserializeObject<T>(conteudoJson);
-                return objeto;
-            }
-            catch (Exception ex)
-            {
-                // Lida com erros ao converter JSON para objeto
-                Console.WriteLine($"Erro ao converter JSON para objeto: {ex.Message}");
-                return default(T);
-            }
-        }
-
+        #region EnviarMensagemTelegram
         public async Task<bool> EnviarMensagemTelegram(string token, long chatId, string mensagem)
         {
             try
@@ -457,6 +412,111 @@ namespace ConsultaImoveisLeilaoCaixa
                 throw;
             }
         }
+        #endregion EnviarMensagemTelegram
+
+        #region SalvarListaComoJson
+        public bool SalvarListaComoJson(ImoveisLeilaoCaixa imoveisLeilaoCaixa, string filePath)
+        {
+            try
+            {
+                string jsonResult = JsonConvert.SerializeObject(imoveisLeilaoCaixa, Formatting.Indented);
+
+                string directoryPath = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
+                File.WriteAllText(filePath, jsonResult);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
+        #endregion SalvarListaComoJson
+
+        #region LerArquivoJson
+        public string LerArquivoJson(string caminhoArquivo)
+        {
+            try
+            {
+                string conteudoJson = File.ReadAllText(caminhoArquivo);
+                return conteudoJson;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
+        #endregion LerArquivoJson
+
+        #region ExtraiLinkMatriculaImovel
+        public static string ExtraiLinkMatriculaImovel(IWebElement divPrincipal, string nomeCampo)
+        {
+            string pattern = @"ExibeDoc\('(.+?)'\)";
+            IReadOnlyCollection<IWebElement> links = divPrincipal.FindElements(By.XPath($".//a[contains(text(), '{nomeCampo}')]"));
+
+            foreach (var link in links)
+            {
+                Match match = Regex.Match(link.GetAttribute("onclick"), pattern);
+                if (match.Success)
+                {
+                    string caminhoDocumento = match.Groups[1].Value;
+                    return "https://venda-imoveis.caixa.gov.br" + caminhoDocumento;
+                }
+            }
+
+            return null;
+        }
+        #endregion ExtraiLinkMatriculaImovel
+
+        #region ExtrairLinkEditalImovel
+        public static string ExtrairLinkEditalImovel(IWebElement divPrincipal, string nomeCampo)
+        {
+            string pattern = @"ExibeDoc\('(.+?)'\)";
+            IReadOnlyCollection<IWebElement> strongElements = divPrincipal.FindElements(By.XPath($".//strong[contains(text(), '{nomeCampo}')]"));
+
+            foreach (var strongElement in strongElements)
+            {
+                IWebElement link = strongElement.FindElement(By.XPath(".//preceding::a[1]"));
+                if (link != null)
+                {
+                    Match match = Regex.Match(link.GetAttribute("onclick"), pattern);
+                    if (match.Success)
+                    {
+                        string caminhoDocumento = match.Groups[1].Value;
+                        return "https://venda-imoveis.caixa.gov.br" + caminhoDocumento;
+                    }
+                }
+            }
+
+            return null;
+        }
+        #endregion ExtrairLinkEditalImovel
+
+
+
+        public T ConverterJsonParaObjeto<T>(string conteudoJson)
+        {
+            try
+            {
+                // Converte o conteúdo JSON para um objeto C#
+                T objeto = JsonConvert.DeserializeObject<T>(conteudoJson);
+                return objeto;
+            }
+            catch (Exception ex)
+            {
+                // Lida com erros ao converter JSON para objeto
+                Console.WriteLine($"Erro ao converter JSON para objeto: {ex.Message}");
+                return default(T);
+            }
+        }
+
+        
 
 
         //Metodos para terminar abaixo

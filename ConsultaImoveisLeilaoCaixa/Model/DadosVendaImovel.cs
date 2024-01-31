@@ -11,5 +11,7 @@
         public string endereco { get; set; }
         public string descricao { get; set; }
         public List<string> formasDePagamento { get; set; }
+        public string linkMatriculaImovel { get; set; }
+        public string linkEditalImovel { get; set; }
     }
 }

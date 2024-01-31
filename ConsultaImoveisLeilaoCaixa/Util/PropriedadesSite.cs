@@ -29,5 +29,7 @@
         public const string DATA_SEGUNDO_LEILAO = "Data do 2º Leilão";
         public const string ENDERECO = "Endereço";
         public const string DESCRICAO = "Descrição";
+        public const string LINK_MATRICULA_IMOVEL = "Baixar matrícula do imóvel";
+        public const string LINK_EDITAL_IMOVEL = "Baixar edital e anexos";
     }
 }

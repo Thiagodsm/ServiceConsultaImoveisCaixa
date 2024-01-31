@@ -2,6 +2,7 @@
 {
     public class DadosImovel
     {
+        public bool visivelCaixaImoveis { get; set; }
         public string nomeLoteamento { get; set; }
         public DadosVendaImovel dadosVendaImovel { get; set; }
         public string valorAvaliacao { get; set; }

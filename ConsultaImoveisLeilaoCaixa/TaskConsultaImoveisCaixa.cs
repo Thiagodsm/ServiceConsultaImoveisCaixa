@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
@@ -158,8 +159,6 @@ namespace ConsultaImoveisLeilaoCaixa
                     string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
                     ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
 
-
-
                     if (imoveisLeilaoCaixa.imoveis.Count > 0)
                     {
                         //dadosImoveis = OrdenaListaImoveis(dadosImoveis);
@@ -167,13 +166,14 @@ namespace ConsultaImoveisLeilaoCaixa
 
                         string caminhoArquivo = Config.CaminhoArquivoImoveis;
                         string tokenTelegram = Config.BotToken;
-                        long chatIdTelegram = Config.ChatId;
+                        string chatIdTelegram = Config.ChatId;
 
                         string mensagem = "";
                         foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
                         {
                             mensagem = MontaMensagamTelegram(item);
-                            bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem);
+                            //bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem);
+                            bool retTelegram = await EnviarMensagemComFoto(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
                         }
                     }
                 }
@@ -405,7 +405,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion ExtraiValor
 
         #region EnviarMensagemTelegram
-        public async Task<bool> EnviarMensagemTelegram(string token, long chatId, string mensagem)
+        public async Task<bool> EnviarMensagemTelegram(string token, string chatId, string mensagem)
         {
             try
             {
@@ -438,7 +438,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     Directory.CreateDirectory(directoryPath);
                 }
 
-                File.WriteAllText(filePath, jsonResult);
+                System.IO.File.WriteAllText(filePath, jsonResult);
                 return true;
             }
             catch (Exception ex)
@@ -454,7 +454,7 @@ namespace ConsultaImoveisLeilaoCaixa
         {
             try
             {
-                string conteudoJson = File.ReadAllText(caminhoArquivo);
+                string conteudoJson = System.IO.File.ReadAllText(caminhoArquivo);
                 return conteudoJson;
             }
             catch (Exception ex)
@@ -588,6 +588,40 @@ namespace ConsultaImoveisLeilaoCaixa
             return String.IsNullOrWhiteSpace(valor) ? valorPadrao : valor;
         }
         #endregion MontaMensagamTelegram
+
+        public async Task<bool> EnviarMensagemComFoto(string botToken, string chatId, string mensagem, string linkImagem)
+        {
+            try
+            {
+                // Crie um cliente HTTP
+                using (var httpClient = new HttpClient())
+                {
+                    // Construa a URL para enviar a foto
+                    var apiUrl = $"https://api.telegram.org/bot{botToken}/sendPhoto";
+
+                    // Crie um formulário de conteúdo para enviar a mensagem e a foto
+                    var formContent = new MultipartFormDataContent
+                    {
+                        { new StringContent(chatId), "chat_id" },
+                        { new StringContent(mensagem), "caption" },
+                        { new StringContent(linkImagem), "photo" } // Adicione a imagem como uma string URL
+                    };
+
+                    // Envie a mensagem com a foto usando o método POST
+                    HttpResponseMessage response = await httpClient.PostAsync(apiUrl, formContent);
+                    if (response.IsSuccessStatusCode)
+                        return true;
+                    else
+                        return false;
+
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
 
         // para terminar
         #region OrdenaListaImoveis

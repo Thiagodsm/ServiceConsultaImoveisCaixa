@@ -9,7 +9,7 @@ Config.CaminhoArquivoImoveis = configuration.GetSection("CaminhoArquivoImoveis")
 DotNetEnv.Env.Load();
 
 Config.BotToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
-Config.ChatId = int.Parse(Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID"));
+Config.ChatId = Environment.GetEnvironmentVariable("TELEGRAM_CHAT_ID");
 
 
 IHost host = Host.CreateDefaultBuilder(args)

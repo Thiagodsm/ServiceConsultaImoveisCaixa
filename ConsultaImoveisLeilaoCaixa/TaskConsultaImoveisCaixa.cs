@@ -35,30 +35,30 @@ namespace ConsultaImoveisLeilaoCaixa
                 try
                 {
                     // Navega nas paginas do site da Caixa
-                    int totalPages = Navegacao(driver);
+                    //int totalPages = Navegacao(driver);
 
                     // Conjunto para rastrear números de imóveis já processados
-                    List<string> numerosImoveisProcessados = BuscaIdsImoveis(driver, totalPages);
+                    //List<string> numerosImoveisProcessados = BuscaIdsImoveis(driver, totalPages);
 
                     // Extrai as informações do site da caixa em forma de objeto
-                    List<DadosImovel> dadosImoveis = ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados);
+                    //List<DadosImovel> dadosImoveis = ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados);
 
                     // Salvando informacoes dos imoveis
                     ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
-                    imoveisLeilaoCaixa.dataProcessamento = DateTime.Now;
-                    imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
-                    imoveisLeilaoCaixa.imoveis = dadosImoveis;
+                    //imoveisLeilaoCaixa.dataProcessamento = DateTime.Now;
+                    //imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
+                    //imoveisLeilaoCaixa.imoveis = dadosImoveis;
 
                     // Ler o conteúdo do arquivo JSON
                     string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
                     ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
 
                     //temporario
-                    //imoveisLeilaoCaixa = imoveisCarregados;
+                    imoveisLeilaoCaixa = imoveisCarregados;
 
                     if (imoveisLeilaoCaixa.imoveis.Count > 0)
                     {
-                        bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
+                        //bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
 
                         string caminhoArquivo = Config.CaminhoArquivoImoveis;
                         string tokenTelegram = Config.BotToken;
@@ -69,6 +69,8 @@ namespace ConsultaImoveisLeilaoCaixa
                         {
                             mensagem = MontaMensagamTelegram(item);
                             bool retTelegram = await EnviarMensagemComFoto(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
+                            // Avoid sending more than one message per second
+                            Thread.Sleep(5000);
                         }
                     }
                     Thread.Sleep(36000000);
@@ -358,7 +360,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 return textoTratado;
             }
             else
-                return "-";
+                return null;
         }
         #endregion ExtraiDadosImovel
 
@@ -376,7 +378,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 return textoTratado;
             }
             else
-                return "-";
+                return null;
         }
         #endregion ExtraiDadosVendaImovel
 
@@ -439,7 +441,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     pattern = @"\(\s*desconto de (\d+(,\d+)?)%\)";
                     break;
                 default:
-                    return "-";
+                    return null;
             }
 
             Match match = Regex.Match(text, pattern);
@@ -452,27 +454,6 @@ namespace ConsultaImoveisLeilaoCaixa
             return "-";
         }
         #endregion ExtraiValor
-
-        #region EnviarMensagemTelegram
-        public async Task<bool> EnviarMensagemTelegram(string token, string chatId, string mensagem)
-        {
-            try
-            {
-                // Inicializa o bot com o token
-                var botClient = new TelegramBotClient(token);
-
-                // Envia a mensagem para o chat especificado
-                await botClient.SendTextMessageAsync(chatId, mensagem);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                // Lida com erros ao enviar a mensagem
-                Console.WriteLine($"Erro ao enviar mensagem para o Telegram: {ex.Message}");
-                throw;
-            }
-        }
-        #endregion EnviarMensagemTelegram
 
         #region SalvarListaComoJson
         public bool SalvarListaComoJson(ImoveisLeilaoCaixa imoveisLeilaoCaixa, string filePath)
@@ -558,26 +539,6 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion ExtrairLinkEditalImovel
 
-        #region BaixarImagem
-        public byte[] BaixarImagem(string url)
-        {
-            using (HttpClient httpClient = new HttpClient())
-            {
-                HttpResponseMessage response = httpClient.GetAsync(url).Result;
-
-                if (response.IsSuccessStatusCode)
-                {
-                    return response.Content.ReadAsByteArrayAsync().Result;
-                }
-                else
-                {
-                    Console.WriteLine($"Falha ao baixar a imagem. Status: {response.StatusCode}");
-                    return null;
-                }
-            }
-        }
-        #endregion BaixarImagem
-
         #region ConverterJsonParaObjeto
         public ImoveisLeilaoCaixa ConverterJsonParaObjeto(string conteudoJson)
         {
@@ -597,51 +558,57 @@ namespace ConsultaImoveisLeilaoCaixa
         #region MontaMensagamTelegram
         public string MontaMensagamTelegram(DadosImovel imovel)
         {
-            string mensagem = 
-                    $"Nome do Loteamento: {VerificarValorNuloOuVazio(imovel.nomeLoteamento)}\n" +
-                    $"Valor de avaliação: R$ {VerificarValorNuloOuVazio(imovel.valorAvaliacao)}\n" +
-                    $"Valor minimo de venda: R$ {VerificarValorNuloOuVazio(imovel.valorMinimoVenda)}\n" +
-                    $"Desconto: {VerificarValorNuloOuVazio(imovel.desconto)}%\n" +
-                    $"Valor minimo de venda 1° Leilão: R$ {VerificarValorNuloOuVazio(imovel.valorMinimoPrimeiraVenda)}\n" +
-                    $"Valor minimo de venda 2° Leilão: R$ {VerificarValorNuloOuVazio(imovel.valorMinimoSegundaVenda)}\n" +
-                    $"Tipo de imóvel: {VerificarValorNuloOuVazio(imovel.tipoImovel)}\n" +
-                    $"Quartos: {VerificarValorNuloOuVazio(imovel.quartos)}\n" +
-                    $"Garagem: {VerificarValorNuloOuVazio(imovel.garagem)}\n" +
-                    $"Numero do imóvel: {VerificarValorNuloOuVazio(imovel.numeroImovel)}\n" +
-                    $"Matricula(s): {VerificarValorNuloOuVazio(imovel.matricula)}\n" +
-                    $"Comarca: {VerificarValorNuloOuVazio(imovel.comarca)}\n" +
-                    $"Oficio: {VerificarValorNuloOuVazio(imovel.oficio)}\n" +
-                    $"Inscricao imobiliaria: {VerificarValorNuloOuVazio(imovel.inscricaoImobiliaria)}\n" +
-                    $"Averbação dos leilões negativos: {VerificarValorNuloOuVazio(imovel.averbacaoLeilaoNegativos)}\n" +
-                    $"Area total: {VerificarValorNuloOuVazio(imovel.areaTotal)}\n" +
-                    $"Area privativa: {VerificarValorNuloOuVazio(imovel.areaPrivativa)}\n" +
-                    $"Area do terreno: {VerificarValorNuloOuVazio(imovel.areaTerreno)}\n" +
-                    $"Situação: {VerificarValorNuloOuVazio(imovel.situacao)}\n" +
-
-                    $"Edital: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.edital)}\n" +
-                    $"Número do Item: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.numeroItem)}\n" +
-                    $"Leiloeiro: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.leiloeiro)}\n" +
-                    $"Data da Licitação: {imovel.dadosVendaImovel.dataLicitacao}\n" +
-                    $"Data do 1° Leilão: {imovel.dadosVendaImovel.dataPrimeiroLeilao}\n" +
-                    $"Data do 2° Leilão: {imovel.dadosVendaImovel.dataSegundoLeilao}\n" +
-                    $"Endereço: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.endereco)}\n" +
-                    $"Descrição: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.descricao)}\n" +
-                    $"Link Matrícula Imóvel: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.linkMatriculaImovel)}\n" +
-                    $"Link Edital Imóvel: {VerificarValorNuloOuVazio(imovel.dadosVendaImovel.linkEditalImovel)}\n";
+            string mensagem =
+                    VerificarValorNuloOuVazio(PropriedadesSite.NOME_LOTEAMENTE, imovel.nomeLoteamento) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_AVALIACAO, imovel.valorAvaliacao, "R$") +
+                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_VENDA, imovel.valorMinimoVenda, "R$") +
+                    VerificarValorNuloOuVazio(PropriedadesSite.DESCONTO, imovel.desconto, sufixo:"%") +
+                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA, imovel.valorMinimoPrimeiraVenda, "R$") +
+                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA, imovel.valorMinimoSegundaVenda, "R$") +
+                    VerificarValorNuloOuVazio(PropriedadesSite.TIPO_IMOVEL, imovel.tipoImovel) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.QUARTOS, imovel.quartos) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.GARAGEM, imovel.garagem) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.NUMERO_IMOVEL, imovel.numeroImovel) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.MATRICULA, imovel.matricula) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.COMARCA, imovel.comarca) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.OFICIO, imovel.oficio) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.INSCRICAO_IMOBILIARIA, imovel.inscricaoImobiliaria) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.AVERBACAO_LEILAO_NEGATIVOS, imovel.averbacaoLeilaoNegativos) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.AREA_TOTAL, imovel.areaTotal) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.AREA_PRIVATIVA, imovel.areaPrivativa) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.AREA_TERRENO, imovel.areaTerreno) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.SITUACAO, imovel.situacao) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.EDITAL, imovel.dadosVendaImovel.edital) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.NUMERO_ITEM, imovel.dadosVendaImovel.numeroItem) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.LEILOEIRO, imovel.dadosVendaImovel.leiloeiro) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.DATA_LICITACAO_ABERTA, imovel.dadosVendaImovel.dataLicitacao) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.DATA_PRIMEIRO_LEILAO, imovel.dadosVendaImovel.dataPrimeiroLeilao) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.DATA_SEGUNDO_LEILAO, imovel.dadosVendaImovel.dataSegundoLeilao) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.ENDERECO, imovel.dadosVendaImovel.endereco) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.DESCRICAO, imovel.dadosVendaImovel.descricao) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.LINK_MATRICULA_IMOVEL, imovel.dadosVendaImovel.linkMatriculaImovel) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.LINK_EDITAL_IMOVEL, imovel.dadosVendaImovel.linkEditalImovel);
            
             return mensagem;
         }
 
-        public string VerificarValorNuloOuVazio(string valor, string valorPadrao = "-")
+        public string VerificarValorNuloOuVazio(string texto, string valor, string prefixo = "", string sufixo = "")
         {
-            return String.IsNullOrWhiteSpace(valor) ? valorPadrao : valor;
+            return !String.IsNullOrWhiteSpace(valor) && valor != "-" ? $"{texto}: {prefixo} {valor}{sufixo}\n" : "";
+        }
+
+        public string VerificarValorNuloOuVazio(string texto, DateTime? valor, string unidade = "")
+        {
+            return valor != null ? $"{texto} {unidade}: {valor}\n" : "";
         }
         #endregion MontaMensagamTelegram
 
+        #region EnviarMensagemComFoto
         public async Task<bool> EnviarMensagemComFoto(string botToken, string chatId, string mensagem, string linkImagem)
         {
             try
             {
+                // maximo 1024 caracteres por mensagem
                 // Crie um cliente HTTP
                 using (var httpClient = new HttpClient())
                 {
@@ -662,7 +629,6 @@ namespace ConsultaImoveisLeilaoCaixa
                         return true;
                     else
                         return false;
-
                 }
             }
             catch (Exception ex)
@@ -671,6 +637,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 throw;
             }
         }
+        #endregion EnviarMensagemComFoto
 
         // para terminar
         #region OrdenaListaImoveis

@@ -2,7 +2,7 @@
 {
     public static class PropriedadesSite
     {
-        public const string NOME_LOTEAMENTE = "";
+        public const string NOME_LOTEAMENTE = "Nome do loteamento";
         public const string VALOR_AVALIACAO = "Valor de avaliação";
         public const string VALOR_MINIMO_VENDA = "Valor mínimo de venda";
         public const string DESCONTO = "desconto";

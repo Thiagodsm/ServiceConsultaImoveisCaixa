@@ -5,6 +5,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Telegram.Bot;
@@ -35,30 +36,27 @@ namespace ConsultaImoveisLeilaoCaixa
                 try
                 {
                     // Navega nas paginas do site da Caixa
-                    //int totalPages = Navegacao(driver);
+                    int totalPages = Navegacao(driver);
 
                     // Conjunto para rastrear números de imóveis já processados
-                    //List<string> numerosImoveisProcessados = BuscaIdsImoveis(driver, totalPages);
+                    List<string> numerosImoveisProcessados = BuscaIdsImoveis(driver, totalPages);
 
                     // Extrai as informações do site da caixa em forma de objeto
-                    //List<DadosImovel> dadosImoveis = ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados);
+                    List<DadosImovel> dadosImoveis = ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados);
 
                     // Salvando informacoes dos imoveis
                     ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
-                    //imoveisLeilaoCaixa.dataProcessamento = DateTime.Now;
-                    //imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
-                    //imoveisLeilaoCaixa.imoveis = dadosImoveis;
+                    imoveisLeilaoCaixa.dataProcessamento = DateTime.Now;
+                    imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
+                    imoveisLeilaoCaixa.imoveis = dadosImoveis;
 
                     // Ler o conteúdo do arquivo JSON
                     string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
                     ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
 
-                    //temporario
-                    imoveisLeilaoCaixa = imoveisCarregados;
-
                     if (imoveisLeilaoCaixa.imoveis.Count > 0)
                     {
-                        //bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
+                        bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
 
                         string caminhoArquivo = Config.CaminhoArquivoImoveis;
                         string tokenTelegram = Config.BotToken;
@@ -68,7 +66,7 @@ namespace ConsultaImoveisLeilaoCaixa
                         foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
                         {
                             mensagem = MontaMensagamTelegram(item);
-                            bool retTelegram = await EnviarMensagemComFoto(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
+                            bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
                             // Avoid sending more than one message per second
                             Thread.Sleep(5000);
                         }
@@ -588,7 +586,6 @@ namespace ConsultaImoveisLeilaoCaixa
                     VerificarValorNuloOuVazio(PropriedadesSite.DESCRICAO, imovel.dadosVendaImovel.descricao) +
                     VerificarValorNuloOuVazio(PropriedadesSite.LINK_MATRICULA_IMOVEL, imovel.dadosVendaImovel.linkMatriculaImovel) +
                     VerificarValorNuloOuVazio(PropriedadesSite.LINK_EDITAL_IMOVEL, imovel.dadosVendaImovel.linkEditalImovel);
-           
             return mensagem;
         }
 
@@ -603,12 +600,59 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion MontaMensagamTelegram
 
+        #region EnviarMensagemTelegram
+        public async Task<bool> EnviarMensagemTelegram(string botToken, string chatId, string mensagem, string linkImagem)
+        {
+            try
+            {
+                const int maxCharacters = 1024;
+                bool success = false;
+
+                if (mensagem.Length > maxCharacters)
+                {
+                    // Tenta quebrar pelo "Descrição:"
+                    List<string> partes = SplitMensagemPorPalavra(mensagem, PropriedadesSite.DESCRICAO + ":", maxCharacters);
+
+                    // Se não houver "Descrição:", tenta quebrar pelo "Endereço:"
+                    if (partes.Count == 1)
+                    {
+                        partes = SplitMensagemPorPalavra(mensagem, PropriedadesSite.ENDERECO + ":", maxCharacters);
+                    }
+
+                    // Se ainda não houver, quebra na posição 1024
+                    if (partes.Count == 1)
+                    {
+                        partes = SplitMensagem(mensagem, maxCharacters);
+                    }
+
+                    // Envia cada parte sequencialmente
+                    for (int i = 0; i < partes.Count; i++)
+                    {
+                        // Adiciona um identificador à parte da mensagem
+                        string mensagemParte = partes.Count > 1 ? $"{i + 1}/{partes.Count} - {partes[i]}" : partes[i];
+
+                        // Envia a parte da mensagem
+                        success = await EnviarMensagemComFoto(botToken, chatId, mensagemParte, linkImagem);
+                    }
+                }
+                else
+                    success = await EnviarMensagemComFoto(botToken, chatId, mensagem, linkImagem);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
+        #endregion EnviarMensagemTelegram
+
         #region EnviarMensagemComFoto
         public async Task<bool> EnviarMensagemComFoto(string botToken, string chatId, string mensagem, string linkImagem)
         {
             try
             {
-                // maximo 1024 caracteres por mensagem
                 // Crie um cliente HTTP
                 using (var httpClient = new HttpClient())
                 {
@@ -637,7 +681,31 @@ namespace ConsultaImoveisLeilaoCaixa
                 throw;
             }
         }
-        #endregion EnviarMensagemComFoto
+#endregion EnviarMensagemComFoto
+
+        #region DivideMensagem
+        private List<string> SplitMensagemPorPalavra(string mensagem, string palavra, int maxCharacters)
+        {
+            // Tenta quebrar o texto pela palavra específica
+            int indicePalavra = mensagem.IndexOf(palavra);
+
+            if (indicePalavra >= 0 && indicePalavra < maxCharacters)
+            {
+                return new List<string> { mensagem.Substring(0, indicePalavra + palavra.Length), mensagem.Substring(indicePalavra + palavra.Length) };
+            }
+
+            // Se não encontrar a palavra ou estiver além do limite, retorna a mensagem original
+            return SplitMensagem(mensagem, maxCharacters);
+        }
+
+        private List<string> SplitMensagem(string mensagem, int maxCharacters)
+        {
+            // Divide a mensagem na posição máxima de caracteres
+            return Enumerable.Range(0, mensagem.Length / maxCharacters)
+                .Select(i => mensagem.Substring(i * maxCharacters, maxCharacters))
+                .ToList();
+        }
+        #endregion DivideMensagem
 
         // para terminar
         #region OrdenaListaImoveis

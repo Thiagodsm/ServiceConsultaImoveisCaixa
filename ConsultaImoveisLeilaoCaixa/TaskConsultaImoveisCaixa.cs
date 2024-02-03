@@ -5,30 +5,28 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Telegram.Bot;
-using Telegram.Bot.Types;
 
 namespace ConsultaImoveisLeilaoCaixa
 {
     public class TaskConsultaImoveisCaixa : BackgroundService
     {
+        #region ctor
         private readonly ILogger<TaskConsultaImoveisCaixa> _logger;
 
         public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger)
         {
             _logger = logger;
         }
+        #endregion ctor
 
+        #region ExecuteAsync
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            TelegramPollingService telegramPollingService = new TelegramPollingService();
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Iniciando o servico: {time}", DateTimeOffset.Now);
-                //await telegramPollingService.IniciarPolling();
 
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
@@ -67,7 +65,7 @@ namespace ConsultaImoveisLeilaoCaixa
                         {
                             mensagem = MontaMensagamTelegram(item);
                             bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
-                            // Avoid sending more than one message per second
+                            // Evite enviar mais de uma mensagem por segundo
                             Thread.Sleep(5000);
                         }
                     }
@@ -90,6 +88,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 }
             }
         }
+        #endregion ExecuteAsync
 
         #region Navegacao
         public int Navegacao(EdgeDriver driver)
@@ -148,7 +147,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion Navegacao
 
         #region BuscaIdsImoveis
-        public List<string> BuscaIdsImoveis(EdgeDriver driver,  int totalPages)
+        public List<string> BuscaIdsImoveis(EdgeDriver driver, int totalPages)
         {
             try
             {
@@ -193,7 +192,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 _logger.LogError(ex.Message);
                 throw;
             }
-            
+
         }
         #endregion BuscaIdsImoveis
 
@@ -560,7 +559,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     VerificarValorNuloOuVazio(PropriedadesSite.NOME_LOTEAMENTE, imovel.nomeLoteamento) +
                     VerificarValorNuloOuVazio(PropriedadesSite.VALOR_AVALIACAO, imovel.valorAvaliacao, "R$") +
                     VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_VENDA, imovel.valorMinimoVenda, "R$") +
-                    VerificarValorNuloOuVazio(PropriedadesSite.DESCONTO, imovel.desconto, sufixo:"%") +
+                    VerificarValorNuloOuVazio(PropriedadesSite.DESCONTO, imovel.desconto, sufixo: "%") +
                     VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA, imovel.valorMinimoPrimeiraVenda, "R$") +
                     VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA, imovel.valorMinimoSegundaVenda, "R$") +
                     VerificarValorNuloOuVazio(PropriedadesSite.TIPO_IMOVEL, imovel.tipoImovel) +
@@ -681,7 +680,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 throw;
             }
         }
-#endregion EnviarMensagemComFoto
+        #endregion EnviarMensagemComFoto
 
         #region DivideMensagem
         private List<string> SplitMensagemPorPalavra(string mensagem, string palavra, int maxCharacters)

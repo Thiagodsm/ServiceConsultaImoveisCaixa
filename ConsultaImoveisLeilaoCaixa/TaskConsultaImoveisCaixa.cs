@@ -28,10 +28,6 @@ namespace ConsultaImoveisLeilaoCaixa
             {
                 _logger.LogInformation("Iniciando o servico: {time}", DateTimeOffset.Now);
 
-                //temporario
-                //TelegramPollingService telegramPollingService = new TelegramPollingService();
-                //telegramPollingService.IniciarPolling();
-
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
 

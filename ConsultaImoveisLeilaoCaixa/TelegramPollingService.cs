@@ -1,66 +1,104 @@
-﻿using ConsultaImoveisLeilaoCaixa;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 
-public class TelegramPollingService
+namespace ConsultaImoveisLeilaoCaixa
 {
-    private readonly string botToken = Config.BotToken;
-    private readonly TelegramBotClient botClient;
-
-    public TelegramPollingService()
+    public class TelegramPollingService : BackgroundService
     {
-        botClient = new TelegramBotClient(botToken);
-    }
+        private readonly string botToken = Config.BotToken;
+        private readonly TelegramBotClient botClient;
+        private readonly BlockingCollection<CommandRequest> commandQueue = new BlockingCollection<CommandRequest>();
 
-    public async Task IniciarPolling()
-    {
-        int offset = 0;
-
-        while (true)
+        public TelegramPollingService()
         {
-            try
+            botClient = new TelegramBotClient(botToken);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            // Inicie a tarefa que processa os comandos da fila
+            await Task.Run(() => ProcessarComandos());
+
+            int offset = 0;
+
+            while (!stoppingToken.IsCancellationRequested)
             {
-                // Obtém as atualizações usando o método getUpdates
-                Update[] updates = await botClient.GetUpdatesAsync(offset);
-
-                // Processa as atualizações
-                ProcessarAtualizacoes(updates);
-
-                // Atualiza o offset para evitar receber as mesmas atualizações novamente
-                if (updates.Length > 0)
+                try
                 {
-                    offset = updates[^1].Id + 1;
+                    // Obtém as atualizações usando o método getUpdates
+                    Update[] updates = await botClient.GetUpdatesAsync(offset, cancellationToken: stoppingToken);
+
+                    // Processa as atualizações
+                    ProcessarAtualizacoes(updates);
+
+                    // Atualiza o offset para evitar receber as mesmas atualizações novamente
+                    if (updates.Length > 0)
+                    {
+                        offset = updates[^1].Id + 1;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erro ao obter atualizações do Telegram: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erro ao obter atualizações do Telegram: {ex.Message}");
-            }
-
-            // Aguarda por algum tempo antes de verificar novamente
-            await Task.Delay(TimeSpan.FromSeconds(5));
         }
-    }
 
-    private void ProcessarAtualizacoes(Update[] updates)
-    {
-        // Lógica para processar as atualizações recebidas
-        foreach (var update in updates)
+        private void ProcessarAtualizacoes(Update[] updates)
         {
-            if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
+            // Lógica para processar as atualizações recebidas
+            foreach (var update in updates)
             {
-                string comandoRecebido = update.Message.Text;
-                ProcessarComando(comandoRecebido);
+                if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
+                {
+                    string comandoRecebido = update.Message.Text;
+                    long chatId = update.Message.Chat.Id;
+
+                    // Adiciona o comando à fila
+                    EnqueueCommand(comandoRecebido, chatId);
+                }
             }
         }
-    }
 
-    private void ProcessarComando(string comando)
-    {
-        // Lógica para processar o comando recebido
-        Console.WriteLine($"Comando recebido: {comando}");
+        private void ProcessarComandos()
+        {
+            foreach (var commandRequest in commandQueue.GetConsumingEnumerable())
+            {
+                // Lógica para processar o comando recebido
+                if (DeveResponder(commandRequest.Command))
+                {
+                    EnviarResposta(commandRequest.ChatId, "Resposta ao comando: " + commandRequest.Command);
+                }
+            }
+        }
+
+        private void EnqueueCommand(string command, long chatId)
+        {
+            commandQueue.Add(new CommandRequest { Command = command, ChatId = chatId });
+        }
+
+        private bool DeveResponder(string command)
+        {
+            // Lógica para verificar se o bot deve ou não responder ao comando
+            // Implemente a lógica conforme necessário
+            return true;
+        }
+
+        private void EnviarResposta(long chatId, string resposta)
+        {
+            // Lógica para enviar uma resposta ao chat específico
+            botClient.SendTextMessageAsync(chatId, resposta);
+        }
+
+        private class CommandRequest
+        {
+            public string Command { get; set; }
+            public long ChatId { get; set; }
+        }
     }
 }

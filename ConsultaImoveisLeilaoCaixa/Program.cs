@@ -43,16 +43,16 @@ var host = Host.CreateDefaultBuilder(args)
                 services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(Config.BotToken));
 
                 // Adicione os serviços hospedados
-                services.AddHostedService<TaskConsultaImoveisCaixa>();
                 services.AddHostedService<TaskTelegramCommandHandler>();
+                services.AddHostedService<TaskConsultaImoveisCaixa>();
             })
             .Build();
 
 var tasks = new List<Task>
-        {
-            host.RunAsync(),
-            Task.Delay(5000) // Aguarda 5 segundos antes de iniciar a segunda tarefa (opcional)
-                .ContinueWith(_ => host.Services.GetRequiredService<TaskTelegramCommandHandler>().StartAsync(default))
-        };
+{
+    host.RunAsync(),
+    Task.Delay(5000) // Aguarda 5 segundos antes de iniciar a segunda tarefa (opcional)
+        .ContinueWith(_ => host.Services.GetRequiredService<TaskTelegramCommandHandler>().StartAsync(default))
+};
 
 await Task.WhenAll(tasks);

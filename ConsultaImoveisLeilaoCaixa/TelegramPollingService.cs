@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -13,17 +14,18 @@ namespace ConsultaImoveisLeilaoCaixa
         private readonly string botToken = Config.BotToken;
         private readonly TelegramBotClient botClient;
         private readonly BlockingCollection<CommandRequest> commandQueue = new BlockingCollection<CommandRequest>();
+        private readonly SemaphoreSlim commandSemaphore = new SemaphoreSlim(10); // Limita a 10 comandos simultâneos
 
         public TelegramPollingService()
         {
             botClient = new TelegramBotClient(botToken);
+
+            // Inicia a tarefa que processa os comandos da fila
+            Task.Run(() => ProcessarComandos());
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            // Inicie a tarefa que processa os comandos da fila
-            await Task.Run(() => ProcessarComandos());
-
             int offset = 0;
 
             while (!stoppingToken.IsCancellationRequested)
@@ -51,7 +53,6 @@ namespace ConsultaImoveisLeilaoCaixa
 
         private void ProcessarAtualizacoes(Update[] updates)
         {
-            // Lógica para processar as atualizações recebidas
             foreach (var update in updates)
             {
                 if (update.Message != null && !string.IsNullOrEmpty(update.Message.Text))
@@ -65,34 +66,50 @@ namespace ConsultaImoveisLeilaoCaixa
             }
         }
 
-        private void ProcessarComandos()
+        private async Task ProcessarComandos()
         {
-            foreach (var commandRequest in commandQueue.GetConsumingEnumerable())
+            while (!commandQueue.IsCompleted)
             {
-                // Lógica para processar o comando recebido
-                if (DeveResponder(commandRequest.Command))
+                if (commandQueue.TryTake(out var commandRequest, TimeSpan.FromSeconds(1)))
                 {
-                    EnviarResposta(commandRequest.ChatId, "Resposta ao comando: " + commandRequest.Command);
+                    await commandSemaphore.WaitAsync();
+
+                    try
+                    {
+                        // Lógica para processar o comando recebido
+                        if (DeveResponder(commandRequest.Command))
+                        {
+                            await EnviarResposta(commandRequest.ChatId, "Resposta ao comando: " + commandRequest.Command);
+                        }
+                    }
+                    finally
+                    {
+                        commandSemaphore.Release();
+                    }
+                }
+                else
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1));
                 }
             }
         }
 
         private void EnqueueCommand(string command, long chatId)
         {
+            Console.WriteLine($"Comando: {command} - chatId: {chatId}");
             commandQueue.Add(new CommandRequest { Command = command, ChatId = chatId });
         }
 
         private bool DeveResponder(string command)
         {
             // Lógica para verificar se o bot deve ou não responder ao comando
-            // Implemente a lógica conforme necessário
             return true;
         }
 
-        private void EnviarResposta(long chatId, string resposta)
+        private async Task EnviarResposta(long chatId, string resposta)
         {
             // Lógica para enviar uma resposta ao chat específico
-            botClient.SendTextMessageAsync(chatId, resposta);
+            await botClient.SendTextMessageAsync(chatId, resposta);
         }
 
         private class CommandRequest

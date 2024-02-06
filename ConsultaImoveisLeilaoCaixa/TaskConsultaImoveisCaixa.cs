@@ -4,7 +4,9 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
+using SeleniumExtras.WaitHelpers;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -30,14 +32,104 @@ namespace ConsultaImoveisLeilaoCaixa
 
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
+                List<string> numerosImoveisProcessados = new List<string>();
 
                 try
                 {
+                    List<string> titulosEditais = new List<string>();
                     // Navega nas paginas do site da Caixa
-                    int totalPages = Navegacao(driver);
+                    int totalPages = 0;// NavegacaoImoveis(driver);
+                    List<IWebElement> linksLicitacoes = NavegacaoLicitacoes(driver);
 
-                    // Conjunto para rastrear números de imóveis já processados
-                    List<string> numerosImoveisProcessados = BuscaIdsImoveis(driver, totalPages);
+                    // Iterar sobre os títulos dos editais e adicioná-los a uma lista
+                    foreach (IWebElement h5Element in driver.FindElements(By.TagName("h5")))
+                    {
+                        string tituloEdital = h5Element.Text;
+                        if (!titulosEditais.Contains(tituloEdital))
+                        {
+                            titulosEditais.Add(tituloEdital);
+                        }
+                    }
+                    titulosEditais = titulosEditais.Distinct().ToList();
+
+                    // Iterar sobre os títulos únicos e processar as páginas correspondentes
+                    foreach (string tituloEdital in titulosEditais)
+                    {
+                            // Encontre o link correspondente ao título do edital
+                            IWebElement linkLeilao = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following-sibling::p[1]/a[1]"));
+
+                            // Obtenha a quantidade de páginas para o edital atual
+                            totalPages = ObterQuantidadePaginas(driver, linkLeilao);
+
+                            // Buscar os IDs dos imóveis nas páginas do edital atual
+                            for (int i = 0; i < totalPages; i++)
+                            {
+                                // Clique no link para carregar a página com a quantidade de imóveis
+                                linkLeilao.Click();
+
+                                // Aguarde um tempo para que a página seja totalmente carregada
+                                Thread.Sleep(5000);
+
+                                // Buscar os IDs dos imóveis na página atual
+                                //numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
+
+                                // Voltar à página anterior
+                                IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
+                                botaoVoltar.Click();
+
+                                // Aguarde um tempo para que a página volte completamente
+                                Thread.Sleep(5000);
+
+                                // Selecione o estado (SP) no dropdown
+                                var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
+                                estadoDropdown.SelectByText("SP");
+
+                                // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
+                                Thread.Sleep(5000);
+
+                                // Clique no botão "Próximo"
+                                var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                                btnNext1.Click();
+
+                                // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
+                                Thread.Sleep(10000);
+                            }
+                    }
+
+                    #region stop
+                    /*
+                    foreach (IWebElement linkLicitacao in linksLicitacoes)
+                    {
+                        totalPages = ObterQuantidadePaginas(driver, linkLicitacao);
+
+                        // Conjunto para rastrear números de imóveis já processados
+                        //numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
+
+                        // Clicar no botão "Voltar"
+                        IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
+                        botaoVoltar.Click();
+
+                        // Aguarde um tempo para que a página volte completamente
+                        Thread.Sleep(5000);
+
+                        // Selecione o estado (SP) no dropdown
+                        var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
+                        estadoDropdown.SelectByText("SP");
+
+                        // Aguarde um tempo adicional (de 5 segundos) apos selecionar o estado
+                        Thread.Sleep(5000);
+
+                        // Clique no botão "Próximo"
+                        var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                        btnNext1.Click();
+
+                        // Aguarde um tempo adicional (de 10 segundos) para carregar as licitacoes novamente
+                        Thread.Sleep(10000);
+                    }
+                    */
+                    #endregion
+
+                    // CONTINUAR VERIFICANDO COMO BUSCAR OS IMOVEIS UTILIZANDO O TEXTO COMO CHAVE PARA BUSCA.
 
                     // Extrai as informações do site da caixa em forma de objeto
                     List<DadosImovel> dadosImoveis = ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados);
@@ -69,6 +161,7 @@ namespace ConsultaImoveisLeilaoCaixa
                             Thread.Sleep(5000);
                         }
                     }
+
                     Thread.Sleep(36000000);
                 }
                 catch (Exception e)
@@ -90,8 +183,8 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion ExecuteAsync
 
-        #region Navegacao
-        public int Navegacao(EdgeDriver driver)
+        #region NavegacaoImoveis
+        public int NavegacaoImoveis(EdgeDriver driver)
         {
             try
             {
@@ -144,16 +237,113 @@ namespace ConsultaImoveisLeilaoCaixa
                 throw;
             }
         }
-        #endregion Navegacao
+        #endregion NavegacaoImoveis
+
+        #region NavegacaoLicitacoes
+        public List<IWebElement> NavegacaoLicitacoes(EdgeDriver driver)
+        {
+            try
+            {
+                // Navegue para a página da Caixa
+                driver.Navigate().GoToUrl("https://venda-imoveis.caixa.gov.br/sistema/busca-licitacoes.asp?sltTipoBusca=licitacoes");
+
+                // Selecione o estado (SP) no dropdown
+                var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
+                estadoDropdown.SelectByText("SP");
+
+                // Aguarde um tempo adicional (de 10 segundos) antes de selecionar a cidade
+                Thread.Sleep(10000);
+
+                // Clique no botão "Próximo"
+                var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                btnNext1.Click();
+
+                // Aguarde um tempo adicional (de 20 segundos) para carregar todos os imoveis
+                Thread.Sleep(20000);
+
+                // Encontre a div com o ID "listalicitacoes"
+                IWebElement divPrincipalLicitacoes = driver.FindElement(By.CssSelector("div#listalicitacoes"));
+
+                // Encontre todos os elementos 'a' dentro da div
+                IList<IWebElement> links = divPrincipalLicitacoes.FindElements(By.TagName("a"));
+
+                // Lista para armazenar os links que correspondem às características desejadas
+                List<IWebElement> linksDesejados = new List<IWebElement>();
+
+                // Filtrar os links com base nas características
+                foreach (IWebElement link in links)
+                {
+                    string onclickValue = link.GetAttribute("onclick");
+                    string titleValue = link.GetAttribute("title");
+
+                    if (onclickValue != null && titleValue != null &&
+                        (onclickValue.Contains("ListarEdital") ||
+                        titleValue.Contains(PropriedadesSite.LINK_LISTA_LICITACOES) ||
+                        titleValue.Contains(PropriedadesSite.LINK_LISTA_VENDA_ONLINE)))
+                    {
+                        linksDesejados.Add(link);
+                    }
+                }
+
+                return linksDesejados;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+        }
+        #endregion NavegacaoLicitacoes
+
+        #region ObterQuantidadePaginas
+        public int ObterQuantidadePaginas(EdgeDriver driver, IWebElement link)
+        {
+            try
+            {
+                // Clique no link para carregar a página com a quantidade de páginas
+                link.Click();
+
+                // Aguarde um tempo para que a página seja totalmente carregada
+                Thread.Sleep(5000);
+
+                // Encontre o elemento que contém o valor de hdnQtdPag
+                IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));
+
+                // Obtenha o valor de hdnQtdPag
+                string valorHdnQtdPag = elemento.GetAttribute("value");
+
+                // Se o valor não estiver vazio, converta para um inteiro e retorne
+                if (!string.IsNullOrEmpty(valorHdnQtdPag))
+                {
+                    return Convert.ToInt32(valorHdnQtdPag);
+                }
+                else
+                {
+                    // Se o valor estiver vazio, retorne zero
+                    return 0;
+                }
+            }
+            catch (NoSuchElementException)
+            {
+                // Se o elemento não for encontrado, retorne zero
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                // Em caso de qualquer outra exceção, registre o erro e retorne zero
+                _logger.LogError(ex.Message);
+                return 0;
+            }
+        }
+        #endregion ObterQuantidadePaginas
 
         #region BuscaIdsImoveis
-        public List<string> BuscaIdsImoveis(EdgeDriver driver, int totalPages)
+        public List<string> BuscaIdsImoveis(EdgeDriver driver, int totalPages, string tipoPagina = "")
         {
             try
             {
                 // Conjunto para rastrear números de imóveis já processados
                 List<string> numerosImoveisProcessados = new List<string>();
-
 
                 for (int currentPage = 1; currentPage <= totalPages; currentPage++)
                 {
@@ -176,8 +366,16 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Navegue para a próxima página, se houver
                     if (currentPage < totalPages)
                     {
-                        // Clique no link para a próxima página
-                        driver.FindElement(By.CssSelector($"a[href='javascript:carregaListaImoveis({currentPage + 1});']")).Click();
+                        if (tipoPagina == "Imoveis Licitacoes")
+                        {
+                            // Clique no link para a próxima página
+                            driver.FindElement(By.CssSelector($"a[href='javascript:carregaListaImoveisLicitacoes({currentPage + 1});']")).Click();
+                        }
+                        else
+                        {
+                            // Clique no link para a próxima página
+                            driver.FindElement(By.CssSelector($"a[href='javascript:carregaListaImoveis({currentPage + 1});']")).Click();
+                        }
 
                         // Aguarde um tempo para a próxima página carregar completamente
                         Thread.Sleep(10000);

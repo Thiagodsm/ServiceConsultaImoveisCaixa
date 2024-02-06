@@ -31,5 +31,7 @@
         public const string DESCRICAO = "Descrição";
         public const string LINK_MATRICULA_IMOVEL = "Baixar matrícula do imóvel";
         public const string LINK_EDITAL_IMOVEL = "Baixar edital e anexos";
+        public const string LINK_LISTA_LICITACOES = "Listar todos os imóveis deste edital";
+        public const string LINK_LISTA_VENDA_ONLINE = "Listar todos os imóveis desta venda online";
     }
 }

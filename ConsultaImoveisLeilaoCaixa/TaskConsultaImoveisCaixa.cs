@@ -55,45 +55,47 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Iterar sobre os títulos únicos e processar as páginas correspondentes
                     foreach (string tituloEdital in titulosEditais)
                     {
-                            // Encontre o link correspondente ao título do edital
-                            IWebElement linkLeilao = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following-sibling::p[1]/a[1]"));
+                        
+                        // Encontre o link correspondente ao título do edital
+                        IWebElement linkLeilao = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::a[contains(@onclick, 'ListarEdital')]"));
 
-                            // Obtenha a quantidade de páginas para o edital atual
-                            totalPages = ObterQuantidadePaginas(driver, linkLeilao);
+                        // Obtenha a quantidade de páginas para o edital atual
+                        totalPages = ObterQuantidadePaginas(driver, linkLeilao);
 
-                            // Buscar os IDs dos imóveis nas páginas do edital atual
-                            for (int i = 0; i < totalPages; i++)
-                            {
-                                // Clique no link para carregar a página com a quantidade de imóveis
-                                linkLeilao.Click();
+                        // Buscar os IDs dos imóveis nas páginas do edital atual
+                        for (int i = 0; i < totalPages; i++)
+                        {
+                            // Clique no link para carregar a página com a quantidade de imóveis
+                            //linkLeilao.Click();
 
-                                // Aguarde um tempo para que a página seja totalmente carregada
-                                Thread.Sleep(5000);
+                            // Aguarde um tempo para que a página seja totalmente carregada
+                            //Thread.Sleep(5000);
 
-                                // Buscar os IDs dos imóveis na página atual
-                                //numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
+                            // Buscar os IDs dos imóveis na página atual
+                            //numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
-                                // Voltar à página anterior
-                                IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
-                                botaoVoltar.Click();
+                        }
 
-                                // Aguarde um tempo para que a página volte completamente
-                                Thread.Sleep(5000);
+                        // Voltar à página anterior
+                        IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
+                        botaoVoltar.Click();
 
-                                // Selecione o estado (SP) no dropdown
-                                var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
-                                estadoDropdown.SelectByText("SP");
+                        // Aguarde um tempo para que a página volte completamente
+                        Thread.Sleep(5000);
 
-                                // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
-                                Thread.Sleep(5000);
+                        // Selecione o estado (SP) no dropdown
+                        var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
+                        estadoDropdown.SelectByText("SP");
 
-                                // Clique no botão "Próximo"
-                                var btnNext1 = driver.FindElement(By.Id("btn_next1"));
-                                btnNext1.Click();
+                        // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
+                        Thread.Sleep(5000);
 
-                                // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
-                                Thread.Sleep(10000);
-                            }
+                        // Clique no botão "Próximo"
+                        var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                        btnNext1.Click();
+
+                        // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
+                        Thread.Sleep(10000);
                     }
 
                     #region stop
@@ -304,7 +306,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 link.Click();
 
                 // Aguarde um tempo para que a página seja totalmente carregada
-                Thread.Sleep(5000);
+                Thread.Sleep(10000);
 
                 // Encontre o elemento que contém o valor de hdnQtdPag
                 IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));

@@ -33,6 +33,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
                 List<string> numerosImoveisProcessados = new List<string>();
+                List<DadosImovel> dadosImoveis = new List<DadosImovel>();
 
                 try
                 {
@@ -61,20 +62,12 @@ namespace ConsultaImoveisLeilaoCaixa
 
                         // Obtenha a quantidade de páginas para o edital atual
                         totalPages = ObterQuantidadePaginas(driver, linkLeilao);
+                        
+                        // Buscar os IDs dos imóveis na página atual
+                        numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
-                        // Buscar os IDs dos imóveis nas páginas do edital atual
-                        for (int i = 0; i < totalPages; i++)
-                        {
-                            // Clique no link para carregar a página com a quantidade de imóveis
-                            //linkLeilao.Click();
-
-                            // Aguarde um tempo para que a página seja totalmente carregada
-                            //Thread.Sleep(5000);
-
-                            // Buscar os IDs dos imóveis na página atual
-                            //numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
-
-                        }
+                        // Extrai as informações do site da caixa em forma de objeto
+                        dadosImoveis.AddRange(ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados));
 
                         // Voltar à página anterior
                         IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
@@ -97,44 +90,6 @@ namespace ConsultaImoveisLeilaoCaixa
                         // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
                         Thread.Sleep(10000);
                     }
-
-                    #region stop
-                    /*
-                    foreach (IWebElement linkLicitacao in linksLicitacoes)
-                    {
-                        totalPages = ObterQuantidadePaginas(driver, linkLicitacao);
-
-                        // Conjunto para rastrear números de imóveis já processados
-                        //numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
-
-                        // Clicar no botão "Voltar"
-                        IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
-                        botaoVoltar.Click();
-
-                        // Aguarde um tempo para que a página volte completamente
-                        Thread.Sleep(5000);
-
-                        // Selecione o estado (SP) no dropdown
-                        var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
-                        estadoDropdown.SelectByText("SP");
-
-                        // Aguarde um tempo adicional (de 5 segundos) apos selecionar o estado
-                        Thread.Sleep(5000);
-
-                        // Clique no botão "Próximo"
-                        var btnNext1 = driver.FindElement(By.Id("btn_next1"));
-                        btnNext1.Click();
-
-                        // Aguarde um tempo adicional (de 10 segundos) para carregar as licitacoes novamente
-                        Thread.Sleep(10000);
-                    }
-                    */
-                    #endregion
-
-                    // CONTINUAR VERIFICANDO COMO BUSCAR OS IMOVEIS UTILIZANDO O TEXTO COMO CHAVE PARA BUSCA.
-
-                    // Extrai as informações do site da caixa em forma de objeto
-                    List<DadosImovel> dadosImoveis = ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados);
 
                     // Salvando informacoes dos imoveis
                     ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
@@ -356,7 +311,6 @@ namespace ConsultaImoveisLeilaoCaixa
                     {
                         string onclickValue = detalhesLink.GetAttribute("onclick");
                         string numeroImovel = ExtrairNumeroImovel(onclickValue);
-                        //detalhesLink.Click();
 
                         // Adiciona o número do imóvel a lista
                         numerosImoveisProcessados.Add(numeroImovel);

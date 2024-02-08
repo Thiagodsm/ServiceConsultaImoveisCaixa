@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using ConsultaImoveisLeilaoCaixa.Model;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -16,6 +18,7 @@ namespace ConsultaImoveisLeilaoCaixa
         private readonly BlockingCollection<CommandRequest> commandQueue = new BlockingCollection<CommandRequest>();
         private readonly SemaphoreSlim commandSemaphore = new SemaphoreSlim(10); // Limita a 10 comandos simultâneos
 
+        #region ctor
         public TelegramPollingService()
         {
             botClient = new TelegramBotClient(botToken);
@@ -23,7 +26,9 @@ namespace ConsultaImoveisLeilaoCaixa
             // Inicia a tarefa que processa os comandos da fila
             Task.Run(() => ProcessarComandos());
         }
+        #endregion ctor
 
+        #region ExecuteAsync
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             int offset = 0;
@@ -50,7 +55,9 @@ namespace ConsultaImoveisLeilaoCaixa
                 }
             }
         }
+        #endregion ExecuteAsync
 
+        #region ProcessarAtualizacoes
         private void ProcessarAtualizacoes(Update[] updates)
         {
             foreach (var update in updates)
@@ -60,12 +67,25 @@ namespace ConsultaImoveisLeilaoCaixa
                     string comandoRecebido = update.Message.Text;
                     long chatId = update.Message.Chat.Id;
 
+                    // Verifica se é a primeira mensagem e envia os comandos disponíveis
+                    if (IsFirstMessage(comandoRecebido) || comandoRecebido == "/start")
+                    {
+                        HandleFirstMessage(chatId);
+                    }
+                    else
+                    {
+                        // Adiciona o comando à fila
+                        EnqueueCommand(comandoRecebido, chatId);
+                    }
+
                     // Adiciona o comando à fila
-                    EnqueueCommand(comandoRecebido, chatId);
+                    //EnqueueCommand(comandoRecebido, chatId);
                 }
             }
         }
+        #endregion ProcessarAtualizacoes
 
+        #region ProcessarComandos
         private async Task ProcessarComandos()
         {
             while (!commandQueue.IsCompleted)
@@ -77,10 +97,12 @@ namespace ConsultaImoveisLeilaoCaixa
                     try
                     {
                         // Lógica para processar o comando recebido
-                        if (DeveResponder(commandRequest.Command))
-                        {
-                            await EnviarResposta(commandRequest.ChatId, "Resposta ao comando: " + commandRequest.Command);
-                        }
+                        //if (DeveResponder(commandRequest.Command))
+                        //{
+                        //    await EnviarResposta(commandRequest.ChatId, "Resposta ao comando: " + commandRequest.Command);
+                        //}
+                        // Lógica para processar o comando recebido
+                        await HandleCommand(commandRequest.Command, commandRequest.ChatId);
                     }
                     finally
                     {
@@ -93,29 +115,80 @@ namespace ConsultaImoveisLeilaoCaixa
                 }
             }
         }
+        #endregion ProcessarComandos
 
+        #region EnqueueCommand
         private void EnqueueCommand(string command, long chatId)
         {
             Console.WriteLine($"Comando: {command} - chatId: {chatId}");
             commandQueue.Add(new CommandRequest { Command = command, ChatId = chatId });
         }
+        #endregion EnqueueCommand
 
+        #region DeveResponder
         private bool DeveResponder(string command)
         {
             // Lógica para verificar se o bot deve ou não responder ao comando
             return true;
         }
+        #endregion DeveResponder
 
+        #region EnviarResposta
         private async Task EnviarResposta(long chatId, string resposta)
         {
             // Lógica para enviar uma resposta ao chat específico
             await botClient.SendTextMessageAsync(chatId, resposta);
         }
+        #endregion EnviarResposta
 
-        private class CommandRequest
+        #region HandleCommand
+        public async Task HandleCommand(string command, long chatId)
         {
-            public string Command { get; set; }
-            public long ChatId { get; set; }
+            string response;
+            switch (command.ToLower())
+            {
+                case "/imoveis/estado":
+                    response = "Lista de imóveis filtrada por estado";
+                    // Lógica para obter e enviar a lista de imóveis filtrada por estado
+                    break;
+                case "/imoveis/estado/cidade":
+                    response = "Lista de imóveis filtrada por estado e cidade";
+                    // Lógica para obter e enviar a lista de imóveis filtrada por estado e cidade
+                    break;
+                case "/imoveis/valor/menor/1000":
+                    response = "Lista de imóveis com valor de venda menor que 1000";
+                    // Lógica para obter e enviar a lista de imóveis com valor de venda menor que 1000
+                    break;
+                default:
+                    response = "Comando não reconhecido. Por favor, verifique e tente novamente.";
+                    break;
+            }
+
+            await botClient.SendTextMessageAsync(chatId, response);
         }
+        #endregion HandleCommand
+
+        #region HandleFirstMessage
+        public void HandleFirstMessage(long chatId)
+        {
+            string message = "Olá! Bem-vindo ao Consulta Imóveis Leilão Caixa Bot.\n\n" +
+                             "Aqui estão os comandos disponíveis:\n" +
+                             "/imoveis/estado - filtra imóveis por estado\n" +
+                             "/imoveis/estado/cidade - filtra imóveis por estado e cidade\n" +
+                             "/imoveis/valor/menor - filtra imóveis por valor\n" +
+                             "/imoveis/valor/maior - filtra imóveis por valor de venda\n\n" +
+                             "Envie um dos comandos acima para começar.";
+
+            botClient.SendTextMessageAsync(chatId, message);
+        }
+        #endregion HandleFirstMessage
+
+        #region IsFirstMessage
+        public bool IsFirstMessage(string message)
+        {
+            // Verifica se a mensagem não contém nenhum comando conhecido
+            return !Regex.IsMatch(message, @"\/imoveis\/(estado|valor|cidade)");
+        }
+        #endregion IsFirstMessage
     }
 }

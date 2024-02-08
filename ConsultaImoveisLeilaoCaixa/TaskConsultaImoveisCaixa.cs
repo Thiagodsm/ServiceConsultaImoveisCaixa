@@ -56,7 +56,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Iterar sobre os títulos únicos e processar as páginas correspondentes
                     foreach (string tituloEdital in titulosEditais)
                     {
-                        
+                        _logger.LogInformation($"Titulo Edital: {tituloEdital}");
                         // Encontre o link correspondente ao título do edital
                         IWebElement linkLeilao = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::a[contains(@onclick, 'ListarEdital')]"));
 

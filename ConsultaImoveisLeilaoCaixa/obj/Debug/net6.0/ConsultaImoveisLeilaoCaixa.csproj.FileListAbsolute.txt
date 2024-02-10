@@ -54,3 +54,16 @@ C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\obj\Debug\net6.0\ConsultaImoveisLeilaoCaixa.pdb
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\obj\Debug\net6.0\ConsultaImoveisLeilaoCaixa.genruntimeconfig.cache
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\obj\Debug\net6.0\ref\ConsultaImoveisLeilaoCaixa.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\AWSSDK.Core.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\AWSSDK.SecurityToken.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\DnsClient.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\MongoDB.Bson.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\MongoDB.Driver.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\MongoDB.Driver.Core.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\MongoDB.Libmongocrypt.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\SharpCompress.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\Snappier.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\ZstdSharp.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\runtimes\linux\native\libmongocrypt.so
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\runtimes\osx\native\libmongocrypt.dylib
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\runtimes\win\native\mongocrypt.dll

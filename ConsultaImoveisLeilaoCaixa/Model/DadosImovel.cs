@@ -2,6 +2,8 @@
 {
     public class DadosImovel
     {
+        public string id { get; set; }
+        public DateTime dataProcessamento { get; set; }
         public bool visivelCaixaImoveis { get; set; }
         public string nomeLoteamento { get; set; }
         public DadosVendaImovel dadosVendaImovel { get; set; }

@@ -1,12 +1,13 @@
 using ConsultaImoveisLeilaoCaixa.Model;
+using ConsultaImoveisLeilaoCaixa.Repository;
 using ConsultaImoveisLeilaoCaixa.Util;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
-using SeleniumExtras.WaitHelpers;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -35,6 +36,9 @@ namespace ConsultaImoveisLeilaoCaixa
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
 
+                ImoveisLeilaoCaixaRepository repository = new ImoveisLeilaoCaixaRepository(Config.ConnectionString, Config.DbName, Config.CollectionName);
+                DadosImovel d = await repository.GetByIdAsync("637000000010165813 ");
+
                 try
                 {
                     List<string> titulosEditais = new List<string>();
@@ -62,7 +66,7 @@ namespace ConsultaImoveisLeilaoCaixa
 
                         // Obtenha a quantidade de páginas para o edital atual
                         totalPages = ObterQuantidadePaginas(driver, linkLeilao);
-                        
+
                         // Buscar os IDs dos imóveis na página atual
                         numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
@@ -93,8 +97,6 @@ namespace ConsultaImoveisLeilaoCaixa
 
                     // Salvando informacoes dos imoveis
                     ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
-                    imoveisLeilaoCaixa.dataProcessamento = DateTime.Now;
-                    imoveisLeilaoCaixa.totalImoveis = dadosImoveis.Count;
                     imoveisLeilaoCaixa.imoveis = dadosImoveis;
 
                     // Ler o conteúdo do arquivo JSON
@@ -451,6 +453,10 @@ namespace ConsultaImoveisLeilaoCaixa
             imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
             imovel.dadosVendaImovel.linkMatriculaImovel = ExtraiLinkMatriculaImovel(divPrincipal, PropriedadesSite.LINK_MATRICULA_IMOVEL);
             imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
+
+            // Id = matricula + numeroImovel tirando caracteres nao numericos
+            imovel.id = $"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}";
+            imovel.dataProcessamento = DateTime.Now;
 
             // Extrai informações com base na classe "fa-info-circle"
             ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));

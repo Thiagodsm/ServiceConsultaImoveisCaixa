@@ -1,11 +1,6 @@
-﻿using System;
+﻿using ConsultaImoveisLeilaoCaixa.Model;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using ConsultaImoveisLeilaoCaixa.Model;
-using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 

@@ -37,7 +37,9 @@ namespace ConsultaImoveisLeilaoCaixa
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
 
                 ImoveisLeilaoCaixaRepository repository = new ImoveisLeilaoCaixaRepository(Config.ConnectionString, Config.DbName, Config.CollectionName);
-                DadosImovel d = await repository.GetByIdAsync("637000000010165813 ");
+                //bool conn = repository.TestConnection(Config.ConnectionString, Config.DbName);
+                //bool t = repository.DocumentExists(Config.ConnectionString, Config.DbName, Config.CollectionName, "637000000010165813");
+                var d = repository.GetAllAsync();
 
                 try
                 {
@@ -115,7 +117,11 @@ namespace ConsultaImoveisLeilaoCaixa
                         foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
                         {
                             mensagem = MontaMensagamTelegram(item);
-                            bool retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
+                            bool retTelegram = false;
+                            if (item.dadosVendaImovel.LinkImagensImovel.Any())
+                                 retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
+                            else
+                                retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, "");
                             // Evite enviar mais de uma mensagem por segundo
                             Thread.Sleep(5000);
                         }
@@ -455,7 +461,7 @@ namespace ConsultaImoveisLeilaoCaixa
             imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
 
             // Id = matricula + numeroImovel tirando caracteres nao numericos
-            imovel.id = $"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}";
+            imovel.id = long.Parse($"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}");
             imovel.dataProcessamento = DateTime.Now;
 
             // Extrai informações com base na classe "fa-info-circle"

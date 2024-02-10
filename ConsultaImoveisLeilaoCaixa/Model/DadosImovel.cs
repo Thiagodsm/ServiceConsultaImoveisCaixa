@@ -1,8 +1,12 @@
-﻿namespace ConsultaImoveisLeilaoCaixa.Model
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace ConsultaImoveisLeilaoCaixa.Model
 {
     public class DadosImovel
     {
-        public string id { get; set; }
+        [BsonId]
+        public long id { get; set; }
         public DateTime dataProcessamento { get; set; }
         public bool visivelCaixaImoveis { get; set; }
         public string nomeLoteamento { get; set; }

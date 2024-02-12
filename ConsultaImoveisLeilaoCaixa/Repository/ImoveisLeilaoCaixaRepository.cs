@@ -5,8 +5,9 @@ using MongoDB.Driver;
 
 namespace ConsultaImoveisLeilaoCaixa.Repository
 {
-    public class ImoveisLeilaoCaixaRepository
+    public class ImoveisLeilaoCaixaRepository : IImoveisLeilaoCaixaRepository
     {
+        #region ctor
         private readonly IMongoCollection<DadosImovel> _collection;
         public ImoveisLeilaoCaixaRepository(string connectionString, string databaseName, string collectionName)
         {
@@ -21,7 +22,9 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
                 throw;
             }
         }
+        #endregion ctor
 
+        #region TestConnection
         public bool TestConnection(string connectionString, string databaseName)
         {
             try
@@ -36,10 +39,9 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
                 return false;
             }
         }
+        #endregion TestConnection
 
-        [BsonId]
-        public long id { get; set; }
-
+        #region CreateAsync
         public async Task CreateAsync(DadosImovel imoveis)
         {
             try
@@ -51,19 +53,13 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
                 throw;
             }
         }
+        #endregion CreateAsync
 
-        public async Task<DadosImovel> GetByIdAsync(long id)
+        #region GetByIdAsync
+        public async Task<DadosImovel> GetByIdAsync(string id)
         {
             try
             {
-                //var objectId = new ObjectId(id);
-                //var filter = Builders<DadosImovel>.Filter.Eq("id", objectId);
-                //return await _collection.Find(filter).FirstOrDefaultAsync();
-
-                //var filter = Builders<DadosImovel>.Filter.Eq(x => x.id, id);
-                //DadosImovel imovel = await _collection.Find(filter).FirstOrDefaultAsync();
-                
-                //DadosImovel imovel = await _collection.Find(imoveis => imoveis.id == id).FirstOrDefaultAsync();
                 DadosImovel imovel = await _collection.Find(imovel => imovel.id == id).FirstOrDefaultAsync();
                 return imovel;
             }
@@ -72,23 +68,37 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
                 throw;
             }
         }
+        #endregion GetByIdAsync
 
-        public async Task<IEnumerable<DadosImovel>> GetAllAsync()
+        #region GetAllAsync
+        public async Task<List<DadosImovel>> GetAllAsync()
         {
             try
             {
-                //return await _collection.Find(new BsonDocument()).ToListAsync();
-
-                //return await _collection.Find(new BsonDocument()).ToListAsync();
-
-                return await _collection.Find(_ => true).ToListAsync();
+                return await _collection.Find(new BsonDocument()).ToListAsync();
             }
+            catch (Exception ex)
             {
                 throw;
             }
         }
+        #endregion GetAllAsync
 
-        public async Task UpdateAsync(long id, DadosImovel imovel)
+        #region DeleteAsync
+        public async Task DeleteAsync(string id)
+        {
+            try
+            {
+                await _collection.DeleteOneAsync(imovelFilter => imovelFilter.id == id);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion DeleteAsync
+
+        public async Task UpdateAsync(string id, DadosImovel imovel)
         {
             try
             {
@@ -127,28 +137,6 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
                 //await _collection.UpdateOneAsync(filter, update);
 
                 await _collection.ReplaceOneAsync(imovelFilter => imovelFilter.id == id, imovel);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-
-        public async Task DeleteAsync(long id)
-        {
-            try
-            {
-                //var objectId = new ObjectId(id);
-                //var filter = Builders<DadosImovel>.Filter.Eq("id", objectId);
-                //await _collection.DeleteOneAsync(filter);
-
-                //var filter = Builders<DadosImovel>.Filter.Eq(x => x.id, id);
-                //await _collection.DeleteOneAsync(filter);
-
-                //var filter = Builders<DadosImovel>.Filter.Eq(imovel => imovel.id, id);
-                //await _collection.DeleteOneAsync(filter);
-
-                await _collection.DeleteOneAsync(imovelFilter => imovelFilter.id == id);
             }
             catch (Exception ex)
             {

@@ -6,7 +6,7 @@ namespace ConsultaImoveisLeilaoCaixa.Model
     public class DadosImovel
     {
         [BsonId]
-        public long id { get; set; }
+        public string id { get; set; }
         public DateTime dataProcessamento { get; set; }
         public bool visivelCaixaImoveis { get; set; }
         public string nomeLoteamento { get; set; }

@@ -17,10 +17,12 @@ namespace ConsultaImoveisLeilaoCaixa
     {
         #region ctor
         private readonly ILogger<TaskConsultaImoveisCaixa> _logger;
+        private readonly IImoveisLeilaoCaixaRepository _repository;
 
-        public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger)
+        public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger, IImoveisLeilaoCaixaRepository imoveisLeilaoCaixaRepository)
         {
             _logger = logger;
+            _repository = imoveisLeilaoCaixaRepository;
         }
         #endregion ctor
 
@@ -35,11 +37,7 @@ namespace ConsultaImoveisLeilaoCaixa
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
-
-                ImoveisLeilaoCaixaRepository repository = new ImoveisLeilaoCaixaRepository(Config.ConnectionString, Config.DbName, Config.CollectionName);
-                //bool conn = repository.TestConnection(Config.ConnectionString, Config.DbName);
-                //bool t = repository.DocumentExists(Config.ConnectionString, Config.DbName, Config.CollectionName, "637000000010165813");
-                var d = repository.GetAllAsync();
+                _repository.TestConnection(Config.ConnectionString, Config.DbName);
 
                 try
                 {
@@ -461,7 +459,7 @@ namespace ConsultaImoveisLeilaoCaixa
             imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
 
             // Id = matricula + numeroImovel tirando caracteres nao numericos
-            imovel.id = long.Parse($"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}");
+            imovel.id = $"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}";
             imovel.dataProcessamento = DateTime.Now;
 
             // Extrai informações com base na classe "fa-info-circle"

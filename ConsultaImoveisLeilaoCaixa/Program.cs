@@ -1,4 +1,5 @@
 using ConsultaImoveisLeilaoCaixa;
+using ConsultaImoveisLeilaoCaixa.Repository;
 
 IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
@@ -19,6 +20,14 @@ Config.ConnectionString = configuration.GetConnectionString("MongoDB").Replace("
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
+        services.AddSingleton<IImoveisLeilaoCaixaRepository>(provider =>
+        {
+            return new ImoveisLeilaoCaixaRepository(
+                Config.ConnectionString,
+                Config.DbName,
+                Config.CollectionName
+            );
+        });
         services.AddHostedService<TelegramPollingService>();
         services.AddHostedService<TaskConsultaImoveisCaixa>();
     })

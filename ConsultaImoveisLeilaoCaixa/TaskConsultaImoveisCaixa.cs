@@ -429,7 +429,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion
 
         #region DefineObjeto
-        public DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal, IWebElement divGaleriaImagens)
+        public async DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal, IWebElement divGaleriaImagens)
         {
             DadosImovel imovel = new DadosImovel();
             imovel.visivelCaixaImoveis = true;
@@ -467,6 +467,11 @@ namespace ConsultaImoveisLeilaoCaixa
             imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
             imovel.dadosVendaImovel.linkMatriculaImovel = ExtraiLinkMatriculaImovel(divPrincipal, PropriedadesSite.LINK_MATRICULA_IMOVEL);
             imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
+
+            // Busca informacoesComplementares pelo CEP
+            string cep = ExtrairCEP(imovel.dadosVendaImovel.endereco);
+            if (!String.IsNullOrWhiteSpace(cep))
+                imovel.informacoesComplementares = await _viaCEPService.ConsultarCep(cep);
 
             // Id = matricula + numeroImovel tirando caracteres nao numericos
             imovel.id = $"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}";
@@ -879,6 +884,25 @@ namespace ConsultaImoveisLeilaoCaixa
                 .ToList();
         }
         #endregion DivideMensagem
+
+        #region ExtrairCEP
+        public string ExtrairCEP(string endereco)
+        {
+            // Usando uma expressão regular para encontrar o padrão de CEP na string
+            Match match = Regex.Match(endereco, @"\bCEP:\s*(\d{5}-\d{3})\b");
+
+            if (match.Success)
+            {
+                // Se o padrão for encontrado, retorna apenas os dígitos numéricos
+                string cep = Regex.Replace(match.Groups[1].Value, @"[^\d]", "");
+                return cep;
+            }
+            else
+            {
+                return "";
+            }
+        }
+        #endregion ExtrairCEP
 
         #region ExtraiSituacao
         #endregion ExtraiSituacao

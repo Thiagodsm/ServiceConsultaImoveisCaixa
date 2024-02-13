@@ -81,7 +81,20 @@ namespace ConsultaImoveisLeilaoCaixa
                         numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
                         // Extrai as informações do site da caixa em forma de objeto
-                        dadosImoveis.AddRange(ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados));
+                        dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados));
+
+                        foreach (DadosImovel imovelNovo in dadosImoveis)
+                        {
+                            DadosImovel aux = await _imoveisLeilaoCaixaRepository.GetByIdAsync(imovelNovo.id);
+                            if (aux == null)
+                            {
+                                await _imoveisLeilaoCaixaRepository.CreateAsync(imovelNovo);
+                            }
+                            else
+                            {
+                                //await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
+                            }
+                        }
 
                         // Voltar à página anterior
                         IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));

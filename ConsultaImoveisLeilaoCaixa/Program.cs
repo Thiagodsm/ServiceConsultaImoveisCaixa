@@ -1,6 +1,8 @@
 using ConsultaImoveisLeilaoCaixa;
 using ConsultaImoveisLeilaoCaixa.Repository;
 using ConsultaImoveisLeilaoCaixa.Repository.Interface;
+using ConsultaImoveisLeilaoCaixa.Services;
+using ConsultaImoveisLeilaoCaixa.Services.Interface;
 
 IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
@@ -38,6 +40,7 @@ IHost host = Host.CreateDefaultBuilder(args)
                 Config.EnderecoCollectionName
             );
         });
+        services.AddSingleton<IViaCEPService, ViaCEPService>();
         services.AddHostedService<TelegramPollingService>();
         services.AddHostedService<TaskConsultaImoveisCaixa>();
     })

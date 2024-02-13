@@ -1,5 +1,6 @@
 using ConsultaImoveisLeilaoCaixa.Model;
 using ConsultaImoveisLeilaoCaixa.Repository.Interface;
+using ConsultaImoveisLeilaoCaixa.Services.Interface;
 using ConsultaImoveisLeilaoCaixa.Util;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -17,12 +18,19 @@ namespace ConsultaImoveisLeilaoCaixa
     {
         #region ctor
         private readonly ILogger<TaskConsultaImoveisCaixa> _logger;
-        private readonly IImoveisLeilaoCaixaRepository _repository;
+        private readonly IImoveisLeilaoCaixaRepository _imoveisLeilaoCaixaRepository;
+        private readonly IEnderecoViaCEPRepository _enderecoViaCEPRepository;
+        private readonly IViaCEPService _viaCEPService;
 
-        public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger, IImoveisLeilaoCaixaRepository imoveisLeilaoCaixaRepository)
+        public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger, 
+            IImoveisLeilaoCaixaRepository imoveisLeilaoCaixaRepository, 
+            IEnderecoViaCEPRepository enderecoViaCEPRepository, 
+            IViaCEPService viaCEPService)
         {
             _logger = logger;
-            _repository = imoveisLeilaoCaixaRepository;
+            _imoveisLeilaoCaixaRepository = imoveisLeilaoCaixaRepository;
+            _enderecoViaCEPRepository = enderecoViaCEPRepository;
+            _viaCEPService = viaCEPService;
         }
         #endregion ctor
 
@@ -37,7 +45,9 @@ namespace ConsultaImoveisLeilaoCaixa
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
-                _repository.TestConnection(Config.ConnectionString, Config.DbName);
+                _imoveisLeilaoCaixaRepository.TestConnection(Config.ConnectionString, Config.DbName);
+                // Consulta o CEP
+                EnderecoViaCEP endereco = await _viaCEPService.ConsultarCep("11451170");
 
                 try
                 {

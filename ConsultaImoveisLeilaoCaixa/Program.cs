@@ -1,5 +1,6 @@
 using ConsultaImoveisLeilaoCaixa;
 using ConsultaImoveisLeilaoCaixa.Repository;
+using ConsultaImoveisLeilaoCaixa.Repository.Interface;
 
 IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
@@ -7,7 +8,8 @@ IConfiguration configuration = new ConfigurationBuilder()
 
 Config.CaminhoArquivoImoveis = configuration.GetSection("CaminhoArquivoImoveis").Value;
 Config.DbName = configuration.GetSection("DbName").Value;
-Config.CollectionName = configuration.GetSection("CollectionName").Value;
+Config.ImoveisCollectionName = configuration.GetSection("ImoveisCollectionName").Value;
+Config.EnderecoCollectionName = configuration.GetSection("EnderecoCollectionName").Value;
 
 DotNetEnv.Env.Load();
 Config.DatabasePassword = Environment.GetEnvironmentVariable("DATABASE_PASSWORD");
@@ -25,7 +27,15 @@ IHost host = Host.CreateDefaultBuilder(args)
             return new ImoveisLeilaoCaixaRepository(
                 Config.ConnectionString,
                 Config.DbName,
-                Config.CollectionName
+                Config.ImoveisCollectionName
+            );
+        });
+        services.AddSingleton<IEnderecoViaCEPRepository>(provider =>
+        {
+            return new EnderecoViaCEPRepository(
+                Config.ConnectionString,
+                Config.DbName,
+                Config.EnderecoCollectionName
             );
         });
         services.AddHostedService<TelegramPollingService>();

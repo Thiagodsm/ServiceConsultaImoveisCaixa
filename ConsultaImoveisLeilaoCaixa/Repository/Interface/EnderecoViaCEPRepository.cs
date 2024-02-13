@@ -1,29 +1,89 @@
 ﻿using ConsultaImoveisLeilaoCaixa.Model;
-using ConsultaImoveisLeilaoCaixa.Repository.Interface;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace ConsultaImoveisLeilaoCaixa.Repository
+namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
 {
-    public class ImoveisLeilaoCaixaRepository : IImoveisLeilaoCaixaRepository
+    public class EnderecoViaCEPRepository : IEnderecoViaCEPRepository
     {
         #region ctor
-        private readonly IMongoCollection<DadosImovel> _collection;
-        public ImoveisLeilaoCaixaRepository(string connectionString, string databaseName, string collectionName)
+        private readonly IMongoCollection<EnderecoViaCEP> _collection;
+        public EnderecoViaCEPRepository(string connectionString, string databaseName, string collectionName)
         {
             try
             {
                 var client = new MongoClient(connectionString);
                 var database = client.GetDatabase(databaseName);
-                _collection = database.GetCollection<DadosImovel>(collectionName);
+                _collection = database.GetCollection<EnderecoViaCEP>(collectionName);
             }
             catch (Exception ex)
             {
                 throw;
             }
         }
-        #endregion ctor
+        #endregion
+
+        #region CreateAsync
+        public async Task CreateAsync(EnderecoViaCEP endereco)
+        {
+            try
+            {
+                await _collection.InsertOneAsync(endereco);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion
+
+        #region DeleteAsync
+        public async Task DeleteAsync(string cep)
+        {
+            try
+            {
+                await _collection.DeleteOneAsync(enderecoFilter => enderecoFilter.cep == cep);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion DeleteAsync
+
+        #region GetAllAsync
+        public async Task<List<EnderecoViaCEP>> GetAllAsync()
+        {
+            try
+            {
+                return await _collection.Find(new BsonDocument()).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion GetAllAsync
+
+        #region GetByIdAsync
+        public async Task<EnderecoViaCEP> GetByIdAsync(string cep)
+        {
+            try
+            {
+                EnderecoViaCEP endereco = await _collection.Find(endereco => endereco.cep == cep).FirstOrDefaultAsync();
+                return endereco;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion GetByIdAsync
 
         #region TestConnection
         public bool TestConnection(string connectionString, string databaseName)
@@ -42,65 +102,8 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion TestConnection
 
-        #region CreateAsync
-        public async Task CreateAsync(DadosImovel imoveis)
-        {
-            try
-            {
-                await _collection.InsertOneAsync(imoveis);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-        #endregion CreateAsync
-
-        #region GetByIdAsync
-        public async Task<DadosImovel> GetByIdAsync(string id)
-        {
-            try
-            {
-                DadosImovel imovel = await _collection.Find(imovel => imovel.id == id).FirstOrDefaultAsync();
-                return imovel;
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-        #endregion GetByIdAsync
-
-        #region GetAllAsync
-        public async Task<List<DadosImovel>> GetAllAsync()
-        {
-            try
-            {
-                return await _collection.Find(new BsonDocument()).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-        #endregion GetAllAsync
-
-        #region DeleteAsync
-        public async Task DeleteAsync(string id)
-        {
-            try
-            {
-                await _collection.DeleteOneAsync(imovelFilter => imovelFilter.id == id);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-        #endregion DeleteAsync
-
         #region UpdateAsync
-        public async Task UpdateAsync(string id, DadosImovel imovel)
+        public async Task UpdateAsync(string cep, EnderecoViaCEP endereco)
         {
             try
             {
@@ -138,7 +141,7 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
 
                 //await _collection.UpdateOneAsync(filter, update);
 
-                await _collection.ReplaceOneAsync(imovelFilter => imovelFilter.id == id, imovel);
+                await _collection.ReplaceOneAsync(enderecoFilter => enderecoFilter.cep == cep, endereco);
             }
             catch (Exception ex)
             {

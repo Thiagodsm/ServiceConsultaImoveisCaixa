@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.IO.Pipes;
 
 namespace ConsultaImoveisLeilaoCaixa.Model
 {
@@ -29,6 +30,7 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public string areaPrivativa { get; set; }
         public string areaTerreno { get; set; }
         public string situacao { get; set; }
+        public EnderecoViaCEP informacoesComplementares { get; set; }
 
     }
 }

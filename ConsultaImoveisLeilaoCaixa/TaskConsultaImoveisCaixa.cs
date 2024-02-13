@@ -1,5 +1,5 @@
 using ConsultaImoveisLeilaoCaixa.Model;
-using ConsultaImoveisLeilaoCaixa.Repository;
+using ConsultaImoveisLeilaoCaixa.Repository.Interface;
 using ConsultaImoveisLeilaoCaixa.Util;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -869,32 +869,6 @@ namespace ConsultaImoveisLeilaoCaixa
                 .ToList();
         }
         #endregion DivideMensagem
-
-        // para terminar
-        #region OrdenaListaImoveis
-        public List<DadosImovel> OrdenaListaImoveis(List<DadosImovel> dadosImoveis)
-        {
-            // Obtém a data atual
-            DateTime dataAtual = DateTime.Now;
-
-            // Filtra e ordena a lista com base na data atual e nas datas dos leilões
-            var listaOrdenada = dadosImoveis
-                .Where(imovel =>
-                    imovel.dadosVendaImovel.dataLicitacao >= dataAtual ||
-                    imovel.dadosVendaImovel.dataPrimeiroLeilao >= dataAtual ||
-                    imovel.dadosVendaImovel.dataSegundoLeilao >= dataAtual)
-                .OrderBy(imovel => new[]
-                {
-                    imovel.dadosVendaImovel.dataLicitacao,
-                    imovel.dadosVendaImovel.dataPrimeiroLeilao,
-                    imovel.dadosVendaImovel.dataSegundoLeilao
-                }
-                .Where(data => data >= dataAtual)
-                .Min())
-                .ToList();
-            return listaOrdenada;
-        }
-        #endregion OrdenaListaImoveis
 
         #region ExtraiSituacao
         #endregion ExtraiSituacao

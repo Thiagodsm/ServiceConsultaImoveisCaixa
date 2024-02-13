@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ConsultaImoveisLeilaoCaixa.Repository
+namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
 {
     public interface IImoveisLeilaoCaixaRepository
     {

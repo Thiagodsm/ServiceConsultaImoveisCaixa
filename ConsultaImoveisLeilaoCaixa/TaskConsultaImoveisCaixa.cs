@@ -367,7 +367,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion BuscaIdsImoveis
 
         #region ExtraiDadosImoveisCaixa
-        public List<DadosImovel> ExtraiDadosImoveisCaixa(EdgeDriver driver, List<string> numerosImoveisProcessados)
+        public async Task<List<DadosImovel>> ExtraiDadosImoveisCaixa(EdgeDriver driver, List<string> numerosImoveisProcessados)
         {
             try
             {
@@ -390,7 +390,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     IWebElement divGaleriaImagens = driver.FindElement(By.Id("galeria-imagens"));
 
                     // Definindo o objeto a partir da div principal
-                    DadosImovel imovel = DefineObjeto(driver, divPrincipal, divGaleriaImagens);
+                    DadosImovel imovel = await DefineObjeto(driver, divPrincipal, divGaleriaImagens);
                     dadosImoveis.Add(imovel);
 
                     // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
@@ -429,7 +429,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion
 
         #region DefineObjeto
-        public async DadosImovel DefineObjeto(EdgeDriver driver, IWebElement divPrincipal, IWebElement divGaleriaImagens)
+        public async Task<DadosImovel> DefineObjeto(EdgeDriver driver, IWebElement divPrincipal, IWebElement divGaleriaImagens)
         {
             DadosImovel imovel = new DadosImovel();
             imovel.visivelCaixaImoveis = true;

@@ -1,4 +1,5 @@
 ﻿using ConsultaImoveisLeilaoCaixa.Model;
+using ConsultaImoveisLeilaoCaixa.Services.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ConsultaImoveisLeilaoCaixa.Services
 {
-    public class ViaCEPService
+    public class ViaCEPService : IViaCEPService
     {
         private static readonly HttpClient _httpClient = new HttpClient();
 
@@ -32,6 +33,7 @@ namespace ConsultaImoveisLeilaoCaixa.Services
                 // Retorna o conteúdo da resposta
                 string enderecoString = await response.Content.ReadAsStringAsync();
                 EnderecoViaCEP endereco = JsonSerializer.Deserialize<EnderecoViaCEP>(enderecoString);
+                return endereco;
             }
             return new EnderecoViaCEP();
         }

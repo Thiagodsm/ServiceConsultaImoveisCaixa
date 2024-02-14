@@ -9,7 +9,7 @@ namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
 {
     public interface IEnderecoViaCEPRepository
     {
-        bool TestConnection(string connectionString, string databaseName);
+        Task<bool> TestConnection(string connectionString, string databaseName);
         Task CreateAsync(EnderecoViaCEP endereco);
         Task<EnderecoViaCEP> GetByIdAsync(string id);
         Task<List<EnderecoViaCEP>> GetAllAsync();

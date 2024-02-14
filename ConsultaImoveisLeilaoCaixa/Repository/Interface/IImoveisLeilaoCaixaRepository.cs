@@ -9,7 +9,7 @@ namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
 {
     public interface IImoveisLeilaoCaixaRepository
     {
-        bool TestConnection(string connectionString, string databaseName);
+        Task<bool> TestConnection(string connectionString, string databaseName);
         Task CreateAsync(DadosImovel imoveis);
         Task<DadosImovel> GetByIdAsync(string id);
         Task<List<DadosImovel>> GetAllAsync();

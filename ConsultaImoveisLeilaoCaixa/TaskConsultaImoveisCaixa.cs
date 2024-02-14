@@ -20,16 +20,19 @@ namespace ConsultaImoveisLeilaoCaixa
         private readonly ILogger<TaskConsultaImoveisCaixa> _logger;
         private readonly IImoveisLeilaoCaixaRepository _imoveisLeilaoCaixaRepository;
         private readonly IEnderecoViaCEPRepository _enderecoViaCEPRepository;
+        private readonly ITituloEditalRepository _tituloEditalRepository;
         private readonly IViaCEPService _viaCEPService;
 
         public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger, 
             IImoveisLeilaoCaixaRepository imoveisLeilaoCaixaRepository, 
-            IEnderecoViaCEPRepository enderecoViaCEPRepository, 
+            IEnderecoViaCEPRepository enderecoViaCEPRepository,
+            ITituloEditalRepository tituloEditalRepository,
             IViaCEPService viaCEPService)
         {
             _logger = logger;
             _imoveisLeilaoCaixaRepository = imoveisLeilaoCaixaRepository;
             _enderecoViaCEPRepository = enderecoViaCEPRepository;
+            _tituloEditalRepository = tituloEditalRepository;
             _viaCEPService = viaCEPService;
         }
         #endregion ctor
@@ -45,7 +48,9 @@ namespace ConsultaImoveisLeilaoCaixa
                 EdgeDriver driver = new EdgeDriver(edgeDriverPath);
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
-                _imoveisLeilaoCaixaRepository.TestConnection(Config.ConnectionString, Config.DbName);
+                await _imoveisLeilaoCaixaRepository.TestConnection(Config.ConnectionString, Config.DbName);
+                await _enderecoViaCEPRepository.TestConnection(Config.ConnectionString, Config.DbName);
+                await _tituloEditalRepository.TestConnection(Config.ConnectionString, Config.DbName);
 
                 try
                 {
@@ -83,16 +88,26 @@ namespace ConsultaImoveisLeilaoCaixa
 
                         foreach (DadosImovel imovelNovo in dadosImoveis)
                         {
-                            DadosImovel aux = await _imoveisLeilaoCaixaRepository.GetByIdAsync(imovelNovo.id);
-                            if (aux == null)
-                            {
+                            DadosImovel imovelAux = await _imoveisLeilaoCaixaRepository.GetByIdAsync(imovelNovo.id);
+                            if (imovelAux == null)
                                 await _imoveisLeilaoCaixaRepository.CreateAsync(imovelNovo);
-                            }
                             else
                             {
                                 //await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
                             }
                         }
+
+                        TituloEditalLeilao editalLeilao = new TituloEditalLeilao();
+                        editalLeilao.titulo = tituloEdital;
+                        editalLeilao.data = DateTime.Now;
+                        editalLeilao.processado = true;
+
+                        TituloEditalLeilao editalAux = await _tituloEditalRepository.GetByIdAsync(editalLeilao.titulo);
+
+                        if (editalAux == null)
+                            await _tituloEditalRepository.CreateAsync(editalLeilao);
+                        else
+                            await _tituloEditalRepository.UpdateAsync(editalLeilao.titulo, editalLeilao);
 
                         // Voltar à página anterior
                         IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));

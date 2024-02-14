@@ -12,6 +12,7 @@ Config.CaminhoArquivoImoveis = configuration.GetSection("CaminhoArquivoImoveis")
 Config.DbName = configuration.GetSection("DbName").Value;
 Config.ImoveisCollectionName = configuration.GetSection("ImoveisCollectionName").Value;
 Config.EnderecoCollectionName = configuration.GetSection("EnderecoCollectionName").Value;
+Config.TituloEditalCollectionName = configuration.GetSection("TituloEditalCollectionName").Value;
 
 DotNetEnv.Env.Load();
 Config.DatabasePassword = Environment.GetEnvironmentVariable("DATABASE_PASSWORD");
@@ -38,6 +39,14 @@ IHost host = Host.CreateDefaultBuilder(args)
                 Config.ConnectionString,
                 Config.DbName,
                 Config.EnderecoCollectionName
+            );
+        });
+        services.AddSingleton<ITituloEditalRepository>(provider =>
+        {
+            return new TituloEditalRepository(
+                Config.ConnectionString,
+                Config.DbName,
+                Config.TituloEditalCollectionName
             );
         });
         services.AddSingleton<IViaCEPService, ViaCEPService>();

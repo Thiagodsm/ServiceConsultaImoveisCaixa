@@ -8,6 +8,7 @@
         public static string DbName { get; set; }
         public static string ImoveisCollectionName { get; set; }
         public static string EnderecoCollectionName { get; set; }
+        public static string TituloEditalCollectionName { get; set; }
         public static string ConnectionString { get; set; }
         public static string DatabasePassword { get; set; }
     }

@@ -26,7 +26,7 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         #endregion ctor
 
         #region TestConnection
-        public bool TestConnection(string connectionString, string databaseName)
+        public async Task<bool> TestConnection(string connectionString, string databaseName)
         {
             try
             {

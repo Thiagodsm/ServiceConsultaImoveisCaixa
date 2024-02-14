@@ -1,4 +1,5 @@
 ﻿using ConsultaImoveisLeilaoCaixa.Model;
+using ConsultaImoveisLeilaoCaixa.Repository.Interface;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
@@ -7,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
+namespace ConsultaImoveisLeilaoCaixa.Repository
 {
     public class EnderecoViaCEPRepository : IEnderecoViaCEPRepository
     {

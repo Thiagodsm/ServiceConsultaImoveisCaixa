@@ -46,8 +46,6 @@ namespace ConsultaImoveisLeilaoCaixa
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
                 _imoveisLeilaoCaixaRepository.TestConnection(Config.ConnectionString, Config.DbName);
-                // Consulta o CEP
-                EnderecoViaCEP endereco = await _viaCEPService.ConsultarCep("11451170");
 
                 try
                 {
@@ -119,34 +117,34 @@ namespace ConsultaImoveisLeilaoCaixa
                     }
 
                     // Salvando informacoes dos imoveis
-                    ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
-                    imoveisLeilaoCaixa.imoveis = dadosImoveis;
+                    //ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
+                    //imoveisLeilaoCaixa.imoveis = dadosImoveis;
 
-                    // Ler o conteúdo do arquivo JSON
-                    string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
-                    ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
+                    //// Ler o conteúdo do arquivo JSON
+                    //string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
+                    //ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
 
-                    if (imoveisLeilaoCaixa.imoveis.Count > 0)
-                    {
-                        bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
+                    //if (imoveisLeilaoCaixa.imoveis.Count > 0)
+                    //{
+                    //    bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
 
-                        string caminhoArquivo = Config.CaminhoArquivoImoveis;
-                        string tokenTelegram = Config.BotToken;
-                        string chatIdTelegram = Config.ChatId;
+                    //    string caminhoArquivo = Config.CaminhoArquivoImoveis;
+                    //    string tokenTelegram = Config.BotToken;
+                    //    string chatIdTelegram = Config.ChatId;
 
-                        string mensagem = "";
-                        foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
-                        {
-                            mensagem = MontaMensagamTelegram(item);
-                            bool retTelegram = false;
-                            if (item.dadosVendaImovel.LinkImagensImovel.Any())
-                                 retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
-                            else
-                                retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, "");
-                            // Evite enviar mais de uma mensagem por segundo
-                            Thread.Sleep(5000);
-                        }
-                    }
+                    //    string mensagem = "";
+                    //    foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
+                    //    {
+                    //        mensagem = MontaMensagamTelegram(item);
+                    //        bool retTelegram = false;
+                    //        if (item.dadosVendaImovel.LinkImagensImovel.Any())
+                    //             retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
+                    //        else
+                    //            retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, "");
+                    //        // Evite enviar mais de uma mensagem por segundo
+                    //        Thread.Sleep(5000);
+                    //    }
+                    //}
 
                     Thread.Sleep(36000000);
                 }

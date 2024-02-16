@@ -84,7 +84,7 @@ namespace ConsultaImoveisLeilaoCaixa
                         numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
                         // Extrai as informações do site da caixa em forma de objeto
-                        dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados));
+                        dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados, tituloEdital));
 
                         foreach (DadosImovel imovelNovo in dadosImoveis)
                         {
@@ -393,7 +393,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion BuscaIdsImoveis
 
         #region ExtraiDadosImoveisCaixa
-        public async Task<List<DadosImovel>> ExtraiDadosImoveisCaixa(EdgeDriver driver, List<string> numerosImoveisProcessados)
+        public async Task<List<DadosImovel>> ExtraiDadosImoveisCaixa(EdgeDriver driver, List<string> numerosImoveisProcessados, string tituloEditalImovel)
         {
             try
             {
@@ -417,6 +417,7 @@ namespace ConsultaImoveisLeilaoCaixa
 
                     // Definindo o objeto a partir da div principal
                     DadosImovel imovel = await DefineObjeto(driver, divPrincipal, divGaleriaImagens);
+                    imovel.tituloEditalImovel = tituloEditalImovel;
                     dadosImoveis.Add(imovel);
 
                     // Após lidar com a página de detalhes, você pode voltar à lista de imóveis

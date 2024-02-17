@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -58,13 +59,14 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Navega nas paginas do site da Caixa
                     int totalPages = 0;// NavegacaoImoveis(driver);
                     List<IWebElement> linksLicitacoes = NavegacaoLicitacoes(driver);
-                    Licitacao licitacao = new Licitacao();
+                    List<TituloEditalLeilao> titulosProcessados = await _tituloEditalRepository.GetAllAsync();
 
                     // Iterar sobre os títulos dos editais e adicioná-los a uma lista
                     foreach (IWebElement h5Element in driver.FindElements(By.TagName("h5")))
                     {
                         string tituloEdital = h5Element.Text;
-                        if (!titulosEditais.Contains(tituloEdital))
+
+                        if (!titulosEditais.Contains(tituloEdital) )
                         {
                             titulosEditais.Add(tituloEdital);
                         }
@@ -84,6 +86,27 @@ namespace ConsultaImoveisLeilaoCaixa
                         // Buscar os IDs dos imóveis na página atual
                         numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
+                        // Extrai as informações do site da caixa em forma de objeto
+                        dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados, tituloEdital));
+
+                        foreach (DadosImovel imovelNovo in dadosImoveis)
+                        {
+                            try
+                            {
+                                DadosImovel imovelAux = await _imoveisLeilaoCaixaRepository.GetByIdAsync(imovelNovo.id);
+                                if (imovelAux == null)
+                                    await _imoveisLeilaoCaixaRepository.CreateAsync(imovelNovo);
+                                else
+                                {
+                                    await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                throw;
+                            }
+                        }
+
                         TituloEditalLeilao editalLeilao = new TituloEditalLeilao();
                         editalLeilao.titulo = tituloEdital;
                         editalLeilao.data = DateTime.Now;
@@ -97,43 +120,36 @@ namespace ConsultaImoveisLeilaoCaixa
                         else
                             await _tituloEditalRepository.UpdateAsync(editalLeilao.titulo, editalLeilao);
 
-                        // Extrai as informações do site da caixa em forma de objeto
-                        dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados, tituloEdital));
-
-                        foreach (DadosImovel imovelNovo in dadosImoveis)
+                        try
                         {
-                            DadosImovel imovelAux = await _imoveisLeilaoCaixaRepository.GetByIdAsync(imovelNovo.id);
-                            if (imovelAux == null)
-                                await _imoveisLeilaoCaixaRepository.CreateAsync(imovelNovo);
-                            else
-                            {
-                                await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
-                            }
+                            // Voltar à página anterior
+                            IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
+                            botaoVoltar.Click();
+
+                            // Limpa lista de imoveis processados
+                            numerosImoveisProcessados.Clear();
+
+                            // Aguarde um tempo para que a página volte completamente
+                            Thread.Sleep(5000);
+
+                            // Selecione o estado (SP) no dropdown
+                            var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
+                            estadoDropdown.SelectByText("SP");
+
+                            // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
+                            Thread.Sleep(5000);
+
+                            // Clique no botão "Próximo"
+                            var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                            btnNext1.Click();
+
+                            // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
+                            Thread.Sleep(10000);
                         }
-
-                        // Voltar à página anterior
-                        IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
-                        botaoVoltar.Click();
-
-                        // Limpa lista de imoveis processados
-                        numerosImoveisProcessados.Clear();
-
-                        // Aguarde um tempo para que a página volte completamente
-                        Thread.Sleep(5000);
-
-                        // Selecione o estado (SP) no dropdown
-                        var estadoDropdown = new SelectElement(driver.FindElement(By.Id("cmb_estado")));
-                        estadoDropdown.SelectByText("SP");
-
-                        // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
-                        Thread.Sleep(5000);
-
-                        // Clique no botão "Próximo"
-                        var btnNext1 = driver.FindElement(By.Id("btn_next1"));
-                        btnNext1.Click();
-
-                        // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
-                        Thread.Sleep(10000);
+                        catch (Exception ex)
+                        {
+                            throw;
+                        }
                     }
 
                     // Salvando informacoes dos imoveis
@@ -463,78 +479,105 @@ namespace ConsultaImoveisLeilaoCaixa
         #region DefineObjeto
         public async Task<DadosImovel> DefineObjeto(EdgeDriver driver, IWebElement divPrincipal, IWebElement divGaleriaImagens)
         {
-            DadosImovel imovel = new DadosImovel();
-            imovel.visivelCaixaImoveis = true;
-            IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
-            imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
-            imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.VALOR_AVALIACAO);
-            imovel.valorMinimoPrimeiraVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA);
-            imovel.valorMinimoSegundaVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA);
-            imovel.valorMinimoVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_VENDA);
-            imovel.desconto = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.DESCONTO);
-            imovel.valorAvaliacao = Regex.Match(imovel.valorAvaliacao, @"R\$ (\d{1,3}(?:\.\d{3})*(?:,\d{2})?)").Groups[1].Value;
-
-            imovel.tipoImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.TIPO_IMOVEL);
-            imovel.quartos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.QUARTOS);
-            imovel.garagem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.GARAGEM);
-            imovel.numeroImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_IMOVEL);
-            imovel.matricula = ExtraiDadosImovel(divPrincipal, PropriedadesSite.MATRICULA);
-            imovel.comarca = ExtraiDadosImovel(divPrincipal, PropriedadesSite.COMARCA);
-            imovel.oficio = ExtraiDadosImovel(divPrincipal, PropriedadesSite.OFICIO);
-            imovel.inscricaoImobiliaria = ExtraiDadosImovel(divPrincipal, PropriedadesSite.INSCRICAO_IMOBILIARIA);
-            imovel.averbacaoLeilaoNegativos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AVERBACAO_LEILAO_NEGATIVOS);
-            imovel.areaTotal = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TOTAL);
-            imovel.areaPrivativa = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_PRIVATIVA);
-            imovel.areaTerreno = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TERRENO);
-            imovel.situacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.SITUACAO);
-
-            imovel.dadosVendaImovel = new DadosVendaImovel();
-            imovel.dadosVendaImovel.edital = ExtraiDadosImovel(divPrincipal, PropriedadesSite.EDITAL);
-            imovel.dadosVendaImovel.numeroItem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_ITEM);
-            imovel.dadosVendaImovel.leiloeiro = ExtraiDadosImovel(divPrincipal, PropriedadesSite.LEILOEIRO);
-            imovel.dadosVendaImovel.dataPrimeiroLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_PRIMEIRO_LEILAO);
-            imovel.dadosVendaImovel.dataSegundoLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_SEGUNDO_LEILAO);
-            imovel.dadosVendaImovel.dataLicitacao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_LICITACAO_ABERTA);
-            imovel.dadosVendaImovel.endereco = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.ENDERECO);
-            imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
-            imovel.dadosVendaImovel.linkMatriculaImovel = ExtraiLinkMatriculaImovel(divPrincipal, PropriedadesSite.LINK_MATRICULA_IMOVEL);
-            imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
-
-            // Busca informacoesComplementares pelo CEP
-            string cep = ExtrairCEP(imovel.dadosVendaImovel.endereco);
-            if (!String.IsNullOrWhiteSpace(cep))
-                imovel.informacoesComplementares = await _viaCEPService.ConsultarCep(cep);
-
-            // Id = matricula + numeroImovel tirando caracteres nao numericos
-            imovel.id = $"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}";
-            imovel.dataProcessamento = DateTime.Now;
-
-            // Extrai informações com base na classe "fa-info-circle"
-            ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
-            imovel.dadosVendaImovel.formasDePagamento = new List<string>();
-            foreach (var infoCircle in infoCircles)
+            try
             {
-                string infoText = ((IJavaScriptExecutor)driver).ExecuteScript("return arguments[0].nextSibling.nodeValue;", infoCircle) as string;
-                if (infoText != null)
-                {
-                    infoText = infoText.Trim();
-                    imovel.dadosVendaImovel.formasDePagamento.Add(infoText);
-                }
-            }
+                DadosImovel imovel = new DadosImovel();
+                imovel.visivelCaixaImoveis = true;
+                IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
+                imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
+                imovel.valorAvaliacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.VALOR_AVALIACAO);
+                imovel.valorMinimoPrimeiraVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA);
+                imovel.valorMinimoSegundaVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA);
+                imovel.valorMinimoVenda = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.VALOR_MINIMO_VENDA);
+                imovel.desconto = ExtraiValor(imovel.valorAvaliacao, PropriedadesSite.DESCONTO);
+                imovel.valorAvaliacao = Regex.Match(imovel.valorAvaliacao, @"R\$ (\d{1,3}(?:\.\d{3})*(?:,\d{2})?)").Groups[1].Value;
 
-            IList<IWebElement> imagens = divGaleriaImagens.FindElements(By.CssSelector("img"));
-            imovel.dadosVendaImovel.LinkImagensImovel = new List<string>();
-            foreach (var imagem in imagens)
-            {
-                string imageUrl = imagem.GetAttribute("src");
-                if (!string.IsNullOrEmpty(imageUrl))
+                imovel.tipoImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.TIPO_IMOVEL);
+                imovel.quartos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.QUARTOS);
+                imovel.garagem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.GARAGEM);
+                imovel.numeroImovel = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_IMOVEL);
+                imovel.matricula = ExtraiDadosImovel(divPrincipal, PropriedadesSite.MATRICULA);
+                imovel.comarca = ExtraiDadosImovel(divPrincipal, PropriedadesSite.COMARCA);
+                imovel.oficio = ExtraiDadosImovel(divPrincipal, PropriedadesSite.OFICIO);
+                imovel.inscricaoImobiliaria = ExtraiDadosImovel(divPrincipal, PropriedadesSite.INSCRICAO_IMOBILIARIA);
+                imovel.averbacaoLeilaoNegativos = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AVERBACAO_LEILAO_NEGATIVOS);
+                imovel.areaTotal = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TOTAL);
+                imovel.areaPrivativa = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_PRIVATIVA);
+                imovel.areaTerreno = ExtraiDadosImovel(divPrincipal, PropriedadesSite.AREA_TERRENO);
+                imovel.situacao = ExtraiDadosImovel(divPrincipal, PropriedadesSite.SITUACAO);
+
+                imovel.dadosVendaImovel = new DadosVendaImovel();
+                imovel.dadosVendaImovel.edital = ExtraiDadosImovel(divPrincipal, PropriedadesSite.EDITAL);
+                imovel.dadosVendaImovel.numeroItem = ExtraiDadosImovel(divPrincipal, PropriedadesSite.NUMERO_ITEM);
+                imovel.dadosVendaImovel.leiloeiro = ExtraiDadosImovel(divPrincipal, PropriedadesSite.LEILOEIRO);
+                imovel.dadosVendaImovel.dataPrimeiroLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_PRIMEIRO_LEILAO);
+                imovel.dadosVendaImovel.dataSegundoLeilao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_SEGUNDO_LEILAO);
+                imovel.dadosVendaImovel.dataLicitacao = ExtraiDatasLeilao(divPrincipal, PropriedadesSite.DATA_LICITACAO_ABERTA);
+                imovel.dadosVendaImovel.endereco = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.ENDERECO);
+                imovel.dadosVendaImovel.descricao = ExtraiDadosVendaImovel(divPrincipal, PropriedadesSite.DESCRICAO);
+                imovel.dadosVendaImovel.linkMatriculaImovel = ExtraiLinkMatriculaImovel(divPrincipal, PropriedadesSite.LINK_MATRICULA_IMOVEL);
+                imovel.dadosVendaImovel.linkEditalImovel = ExtrairLinkEditalImovel(divPrincipal, PropriedadesSite.LINK_EDITAL_IMOVEL);
+
+                // Busca informacoesComplementares pelo CEP
+                string cep = ExtrairCEP(imovel.dadosVendaImovel.endereco);
+                try
                 {
-                    //byte[] imagemBytes = BaixarImagem(imageUrl);
-                    imovel.dadosVendaImovel.LinkImagensImovel.Add(imageUrl);
+                    if (!String.IsNullOrWhiteSpace(cep))
+                    {
+                        EnderecoViaCEP enderecoViaCEP = await _enderecoViaCEPRepository.GetByIdAsync(cep);
+                        if (enderecoViaCEP != null)
+                            imovel.informacoesComplementares = enderecoViaCEP;
+                        else
+                        {
+                            EnderecoViaCEP enderecoAux = await _viaCEPService.ConsultarCep(cep);
+                            if (enderecoAux != null && !String.IsNullOrWhiteSpace(enderecoAux.cep))
+                            {
+                                imovel.informacoesComplementares = enderecoAux;
+                                await _enderecoViaCEPRepository.CreateAsync(imovel.informacoesComplementares);
+                            }
+                        }
+                    }
                 }
+                catch (Exception ex)
+                {
+                    throw;
+                }
+
+                // Id = matricula + numeroImovel tirando caracteres nao numericos
+                imovel.id = $"{imovel.matricula}{Regex.Replace(imovel.numeroImovel, "[^0-9]", "")}";
+                imovel.dataProcessamento = DateTime.Now;
+
+                // Extrai informações com base na classe "fa-info-circle"
+                ReadOnlyCollection<IWebElement> infoCircles = divPrincipal.FindElements(By.CssSelector(".fa-info-circle"));
+                imovel.dadosVendaImovel.formasDePagamento = new List<string>();
+                foreach (var infoCircle in infoCircles)
+                {
+                    string infoText = ((IJavaScriptExecutor)driver).ExecuteScript("return arguments[0].nextSibling.nodeValue;", infoCircle) as string;
+                    if (infoText != null)
+                    {
+                        infoText = infoText.Trim();
+                        imovel.dadosVendaImovel.formasDePagamento.Add(infoText);
+                    }
+                }
+
+                IList<IWebElement> imagens = divGaleriaImagens.FindElements(By.CssSelector("img"));
+                imovel.dadosVendaImovel.LinkImagensImovel = new List<string>();
+                foreach (var imagem in imagens)
+                {
+                    string imageUrl = imagem.GetAttribute("src");
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        //byte[] imagemBytes = BaixarImagem(imageUrl);
+                        imovel.dadosVendaImovel.LinkImagensImovel.Add(imageUrl);
+                    }
+                }
+                imovel.dadosVendaImovel.LinkImagensImovel = imovel.dadosVendaImovel.LinkImagensImovel.Distinct().ToList();
+                return imovel;
             }
-            imovel.dadosVendaImovel.LinkImagensImovel = imovel.dadosVendaImovel.LinkImagensImovel.Distinct().ToList();
-            return imovel;
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
         #endregion DefineObjeto
 
@@ -762,160 +805,6 @@ namespace ConsultaImoveisLeilaoCaixa
             }
         }
         #endregion ConverterJsonParaObjeto
-
-        #region MontaMensagamTelegram
-        public string MontaMensagamTelegram(DadosImovel imovel)
-        {
-            string mensagem =
-                    VerificarValorNuloOuVazio(PropriedadesSite.NOME_LOTEAMENTE, imovel.nomeLoteamento) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_AVALIACAO, imovel.valorAvaliacao, "R$") +
-                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_VENDA, imovel.valorMinimoVenda, "R$") +
-                    VerificarValorNuloOuVazio(PropriedadesSite.DESCONTO, imovel.desconto, sufixo: "%") +
-                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_PRIMEIRA_VENDA, imovel.valorMinimoPrimeiraVenda, "R$") +
-                    VerificarValorNuloOuVazio(PropriedadesSite.VALOR_MINIMO_SEGUNDA_VENDA, imovel.valorMinimoSegundaVenda, "R$") +
-                    VerificarValorNuloOuVazio(PropriedadesSite.TIPO_IMOVEL, imovel.tipoImovel) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.QUARTOS, imovel.quartos) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.GARAGEM, imovel.garagem) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.NUMERO_IMOVEL, imovel.numeroImovel) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.MATRICULA, imovel.matricula) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.COMARCA, imovel.comarca) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.OFICIO, imovel.oficio) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.INSCRICAO_IMOBILIARIA, imovel.inscricaoImobiliaria) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.AVERBACAO_LEILAO_NEGATIVOS, imovel.averbacaoLeilaoNegativos) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.AREA_TOTAL, imovel.areaTotal) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.AREA_PRIVATIVA, imovel.areaPrivativa) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.AREA_TERRENO, imovel.areaTerreno) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.SITUACAO, imovel.situacao) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.EDITAL, imovel.dadosVendaImovel.edital) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.NUMERO_ITEM, imovel.dadosVendaImovel.numeroItem) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.LEILOEIRO, imovel.dadosVendaImovel.leiloeiro) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.DATA_LICITACAO_ABERTA, imovel.dadosVendaImovel.dataLicitacao) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.DATA_PRIMEIRO_LEILAO, imovel.dadosVendaImovel.dataPrimeiroLeilao) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.DATA_SEGUNDO_LEILAO, imovel.dadosVendaImovel.dataSegundoLeilao) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.ENDERECO, imovel.dadosVendaImovel.endereco) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.DESCRICAO, imovel.dadosVendaImovel.descricao) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.LINK_MATRICULA_IMOVEL, imovel.dadosVendaImovel.linkMatriculaImovel) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.LINK_EDITAL_IMOVEL, imovel.dadosVendaImovel.linkEditalImovel);
-            return mensagem;
-        }
-
-        public string VerificarValorNuloOuVazio(string texto, string valor, string prefixo = "", string sufixo = "")
-        {
-            return !String.IsNullOrWhiteSpace(valor) && valor != "-" ? $"{texto}: {prefixo} {valor}{sufixo}\n" : "";
-        }
-
-        public string VerificarValorNuloOuVazio(string texto, DateTime? valor, string unidade = "")
-        {
-            return valor != null ? $"{texto} {unidade}: {valor}\n" : "";
-        }
-        #endregion MontaMensagamTelegram
-
-        #region EnviarMensagemTelegram
-        public async Task<bool> EnviarMensagemTelegram(string botToken, string chatId, string mensagem, string linkImagem)
-        {
-            try
-            {
-                const int maxCharacters = 1024;
-                bool success = false;
-
-                if (mensagem.Length > maxCharacters)
-                {
-                    // Tenta quebrar pelo "Descrição:"
-                    List<string> partes = SplitMensagemPorPalavra(mensagem, PropriedadesSite.DESCRICAO + ":", maxCharacters);
-
-                    // Se não houver "Descrição:", tenta quebrar pelo "Endereço:"
-                    if (partes.Count == 1)
-                    {
-                        partes = SplitMensagemPorPalavra(mensagem, PropriedadesSite.ENDERECO + ":", maxCharacters);
-                    }
-
-                    // Se ainda não houver, quebra na posição 1024
-                    if (partes.Count == 1)
-                    {
-                        partes = SplitMensagem(mensagem, maxCharacters);
-                    }
-
-                    // Envia cada parte sequencialmente
-                    for (int i = 0; i < partes.Count; i++)
-                    {
-                        // Adiciona um identificador à parte da mensagem
-                        string mensagemParte = partes.Count > 1 ? $"{i + 1}/{partes.Count} - {partes[i]}" : partes[i];
-
-                        // Envia a parte da mensagem
-                        success = await EnviarMensagemComFoto(botToken, chatId, mensagemParte, linkImagem);
-                    }
-                }
-                else
-                    success = await EnviarMensagemComFoto(botToken, chatId, mensagem, linkImagem);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-                throw;
-            }
-        }
-        #endregion EnviarMensagemTelegram
-
-        #region EnviarMensagemComFoto
-        public async Task<bool> EnviarMensagemComFoto(string botToken, string chatId, string mensagem, string linkImagem)
-        {
-            try
-            {
-                // Crie um cliente HTTP
-                using (var httpClient = new HttpClient())
-                {
-                    // Construa a URL para enviar a foto
-                    var apiUrl = $"https://api.telegram.org/bot{botToken}/sendPhoto";
-
-                    // Crie um formulário de conteúdo para enviar a mensagem e a foto
-                    var formContent = new MultipartFormDataContent
-                    {
-                        { new StringContent(chatId), "chat_id" },
-                        { new StringContent(mensagem), "caption" },
-                        { new StringContent(linkImagem), "photo" } // Adicione a imagem como uma string URL
-                    };
-
-                    // Envie a mensagem com a foto usando o método POST
-                    HttpResponseMessage response = await httpClient.PostAsync(apiUrl, formContent);
-                    if (response.IsSuccessStatusCode)
-                        return true;
-                    else
-                        return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-                throw;
-            }
-        }
-        #endregion EnviarMensagemComFoto
-
-        #region DivideMensagem
-        private List<string> SplitMensagemPorPalavra(string mensagem, string palavra, int maxCharacters)
-        {
-            // Tenta quebrar o texto pela palavra específica
-            int indicePalavra = mensagem.IndexOf(palavra);
-
-            if (indicePalavra >= 0 && indicePalavra < maxCharacters)
-            {
-                return new List<string> { mensagem.Substring(0, indicePalavra + palavra.Length), mensagem.Substring(indicePalavra + palavra.Length) };
-            }
-
-            // Se não encontrar a palavra ou estiver além do limite, retorna a mensagem original
-            return SplitMensagem(mensagem, maxCharacters);
-        }
-
-        private List<string> SplitMensagem(string mensagem, int maxCharacters)
-        {
-            // Divide a mensagem na posição máxima de caracteres
-            return Enumerable.Range(0, mensagem.Length / maxCharacters)
-                .Select(i => mensagem.Substring(i * maxCharacters, maxCharacters))
-                .ToList();
-        }
-        #endregion DivideMensagem
 
         #region ExtrairCEP
         public string ExtrairCEP(string endereco)

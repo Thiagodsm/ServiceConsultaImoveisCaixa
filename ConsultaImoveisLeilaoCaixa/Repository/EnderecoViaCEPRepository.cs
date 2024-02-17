@@ -76,6 +76,7 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         {
             try
             {
+                cep = $"{cep.Substring(0, 5)}-{cep.Substring(5)}"; // converte 11451170 -> 11451-170
                 EnderecoViaCEP endereco = await _collection.Find(endereco => endereco.cep == cep).FirstOrDefaultAsync();
                 return endereco;
             }

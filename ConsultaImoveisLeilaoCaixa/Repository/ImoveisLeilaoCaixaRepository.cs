@@ -71,6 +71,28 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion GetByIdAsync
 
+
+        public async Task<List<DadosImovel>> GetByUFAndLocalidadeAsync(string uf, string localidade)
+        {
+            try
+            {
+                // Define um filtro para encontrar documentos que tenham uma correspondência nos campos 'informacoesComplementares.uf' e 'informacoesComplementares.localidade'
+                var filter = Builders<DadosImovel>.Filter.And(
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression("sp", "i")),
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.localidade", new BsonRegularExpression("guarujá", "i"))
+                );
+
+                // Executa a consulta com o filtro
+                return await _collection.Find(filter).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+
+
         #region GetAllAsync
         public async Task<List<DadosImovel>> GetAllAsync()
         {

@@ -58,6 +58,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Navega nas paginas do site da Caixa
                     int totalPages = 0;// NavegacaoImoveis(driver);
                     List<IWebElement> linksLicitacoes = NavegacaoLicitacoes(driver);
+                    Licitacao licitacao = new Licitacao();
 
                     // Iterar sobre os títulos dos editais e adicioná-los a uma lista
                     foreach (IWebElement h5Element in driver.FindElements(By.TagName("h5")))
@@ -83,6 +84,19 @@ namespace ConsultaImoveisLeilaoCaixa
                         // Buscar os IDs dos imóveis na página atual
                         numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
+                        TituloEditalLeilao editalLeilao = new TituloEditalLeilao();
+                        editalLeilao.titulo = tituloEdital;
+                        editalLeilao.data = DateTime.Now;
+                        editalLeilao.processado = true;
+                        editalLeilao.totalImoveis = numerosImoveisProcessados.Count;
+
+                        TituloEditalLeilao editalAux = await _tituloEditalRepository.GetByIdAsync(editalLeilao.titulo);
+
+                        if (editalAux == null)
+                            await _tituloEditalRepository.CreateAsync(editalLeilao);
+                        else
+                            await _tituloEditalRepository.UpdateAsync(editalLeilao.titulo, editalLeilao);
+
                         // Extrai as informações do site da caixa em forma de objeto
                         dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados, tituloEdital));
 
@@ -93,25 +107,16 @@ namespace ConsultaImoveisLeilaoCaixa
                                 await _imoveisLeilaoCaixaRepository.CreateAsync(imovelNovo);
                             else
                             {
-                                //await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
+                                await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
                             }
                         }
-
-                        TituloEditalLeilao editalLeilao = new TituloEditalLeilao();
-                        editalLeilao.titulo = tituloEdital;
-                        editalLeilao.data = DateTime.Now;
-                        editalLeilao.processado = true;
-
-                        TituloEditalLeilao editalAux = await _tituloEditalRepository.GetByIdAsync(editalLeilao.titulo);
-
-                        if (editalAux == null)
-                            await _tituloEditalRepository.CreateAsync(editalLeilao);
-                        else
-                            await _tituloEditalRepository.UpdateAsync(editalLeilao.titulo, editalLeilao);
 
                         // Voltar à página anterior
                         IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
                         botaoVoltar.Click();
+
+                        // Limpa lista de imoveis processados
+                        numerosImoveisProcessados.Clear();
 
                         // Aguarde um tempo para que a página volte completamente
                         Thread.Sleep(5000);

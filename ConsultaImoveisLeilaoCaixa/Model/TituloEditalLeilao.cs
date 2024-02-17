@@ -13,5 +13,6 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public string titulo { get; set; }
         public DateTime data { get; set; }
         public bool processado { get; set; }
+        public int totalImoveis { get; set; }
     }
 }

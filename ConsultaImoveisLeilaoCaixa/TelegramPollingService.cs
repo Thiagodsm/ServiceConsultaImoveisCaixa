@@ -174,11 +174,9 @@ namespace ConsultaImoveisLeilaoCaixa
                     return;
                 }
 
-                // Extrai os valores do comando
                 string valor1 = parts[1];
                 string valor2 = parts[2];
 
-                // Consulta os imóveis com base no identificador
                 List<DadosImovel> imoveis = null;
                 switch (identificador)
                 {

@@ -66,7 +66,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     {
                         string tituloEdital = h5Element.Text;
 
-                        if (!titulosEditais.Contains(tituloEdital) )
+                        if (!titulosEditais.Contains(tituloEdital) && !titulosProcessados.Any(titulo => titulo.titulo == tituloEdital))
                         {
                             titulosEditais.Add(tituloEdital);
                         }

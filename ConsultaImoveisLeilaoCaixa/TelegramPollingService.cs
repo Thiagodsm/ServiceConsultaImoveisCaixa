@@ -70,7 +70,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     long chatId = update.Message.Chat.Id;
 
                     // Verifica se é a primeira mensagem e envia os comandos disponíveis
-                    if (IsFirstMessage(comandoRecebido) || comandoRecebido == "/start")
+                    if (/*IsFirstMessage(comandoRecebido) ||*/ comandoRecebido == "/start")
                     {
                         HandleFirstMessage(chatId);
                     }
@@ -153,63 +153,63 @@ namespace ConsultaImoveisLeilaoCaixa
         #region HandleCommand
         public async Task HandleCommand(string command, long chatId)
         {
-            //List<DadosImovel> imoveis = await _imoveisLeilaoCaixaRepository.GetByUFAndLocalidadeAsync("sp", "guarujá");
             try
             {
                 // Divide o comando em partes usando '/' como delimitador
                 string[] parts = command.Split('/');
 
                 // Verifica se o comando tem o formato correto
-                if (parts.Length != 3)
+                if (parts.Length != 4)
                 {
-                    await botClient.SendTextMessageAsync(chatId, "Comando inválido. Use o formato /identificador/valor1/valor2.");
+                    await botClient.SendTextMessageAsync(chatId, "Comando inválido. Use o formato /imoveis/identificador/valor1/valor2.");
                     return;
                 }
 
                 // Extrai o identificador do comando
                 ComandoIdentificador identificador;
-                if (!Enum.TryParse(parts[0], true, out identificador))
+                if (!Enum.TryParse(parts[1], true, out identificador))
                 {
                     await botClient.SendTextMessageAsync(chatId, "Identificador de comando inválido.");
                     return;
                 }
 
-                string valor1 = parts[1];
-                string valor2 = parts[2];
+                string valor1 = parts[2];
+                string valor2 = parts[3];
 
-                List<DadosImovel> imoveis = null;
+                List<DadosImovel> imoveis = new List<DadosImovel>();
                 switch (identificador)
                 {
                     case ComandoIdentificador.Localidade:
+                        //Localidade/uf/localidade
                         imoveis = await _imoveisLeilaoCaixaRepository.GetByUFAndLocalidadeAsync(valor1, valor2);
                         break;
                     case ComandoIdentificador.ValorMenor:
-                        //imoveis = await _imoveisLeilaoCaixaRepository.GetByValorMinimoMenorAsync(valor1);
+                        //imoveis = await _imoveisLeilaoCaixaRepository.GetByValorAvaliacaoMenorAsync(valor1);
                         break;
                     case ComandoIdentificador.TipoImovel:
-                        //imoveis = await _imoveisLeilaoCaixaRepository.GetByTipoImovelAsync(valor1);
+                        //TipoImovel/localidade/tipoImovel
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetByTipoImovelAsync(valor1, valor2);
                         break;
                     default:
                         await botClient.SendTextMessageAsync(chatId, "Identificador de comando não suportado.");
                         return;
                 }
 
-                // Verifica se foram encontrados imóveis
                 if (imoveis != null && imoveis.Any())
                 {
-                    // Constrói a resposta com a lista de imóveis
-                    StringBuilder responseBuilder = new StringBuilder();
-                    responseBuilder.AppendLine("Lista de imóveis encontrados:");
+                    // Envia a resposta para o chat
+                    await botClient.SendTextMessageAsync(chatId, $"{imoveis.Count} imóveis foram encontrados. Aguarde até que todos sejam processados.");
 
                     foreach (var imovel in imoveis)
                     {
-                        // Adiciona informações do imóvel à resposta
-                        responseBuilder.AppendLine($"- {imovel.tituloEditalImovel}");
-                        // Adicione outras informações do imóvel conforme necessário
+                        string mensagem = MontaMensagamTelegram(imovel);
+                        Thread.Sleep(5000);
+                        bool success = await EnviarMensagemTelegram(
+                            botToken,
+                            chatId.ToString(),
+                            mensagem,
+                            imovel.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
                     }
-
-                    // Envia a resposta para o chat
-                    await botClient.SendTextMessageAsync(chatId, responseBuilder.ToString());
                 }
                 else
                 {
@@ -279,7 +279,8 @@ namespace ConsultaImoveisLeilaoCaixa
                     VerificarValorNuloOuVazio(PropriedadesSite.ENDERECO, imovel.dadosVendaImovel.endereco) +
                     VerificarValorNuloOuVazio(PropriedadesSite.DESCRICAO, imovel.dadosVendaImovel.descricao) +
                     VerificarValorNuloOuVazio(PropriedadesSite.LINK_MATRICULA_IMOVEL, imovel.dadosVendaImovel.linkMatriculaImovel) +
-                    VerificarValorNuloOuVazio(PropriedadesSite.LINK_EDITAL_IMOVEL, imovel.dadosVendaImovel.linkEditalImovel);
+                    VerificarValorNuloOuVazio(PropriedadesSite.LINK_EDITAL_IMOVEL, imovel.dadosVendaImovel.linkEditalImovel) +
+                    VerificarValorNuloOuVazio(PropriedadesSite.FORMAS_DE_PAGAMENTO, ConcatenarComQuebraDeLinha(imovel.dadosVendaImovel.formasDePagamento));
             return mensagem;
         }
 
@@ -291,6 +292,17 @@ namespace ConsultaImoveisLeilaoCaixa
         public string VerificarValorNuloOuVazio(string texto, DateTime? valor, string unidade = "")
         {
             return valor != null ? $"{texto} {unidade}: {valor}\n" : "";
+        }
+
+        public string ConcatenarComQuebraDeLinha(List<string> listaDeStrings)
+        {
+            StringBuilder resultado = new StringBuilder();
+            foreach (string str in listaDeStrings)
+            {
+                resultado.Append(str);
+                resultado.Append(Environment.NewLine);
+            }
+            return resultado.ToString();
         }
         #endregion MontaMensagamTelegram
 

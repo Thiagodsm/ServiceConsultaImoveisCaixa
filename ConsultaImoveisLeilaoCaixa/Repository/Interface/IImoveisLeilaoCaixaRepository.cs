@@ -13,6 +13,7 @@ namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
         Task CreateAsync(DadosImovel imoveis);
         Task<DadosImovel> GetByIdAsync(string id);
         Task<List<DadosImovel>> GetByUFAndLocalidadeAsync(string uf, string localidade);
+        Task<List<DadosImovel>> GetByTipoImovelAsync(string localidade, string tipoImovel);
         Task<List<DadosImovel>> GetAllAsync();
         Task UpdateAsync(string id, DadosImovel imovel);
         Task DeleteAsync(string id);

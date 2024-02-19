@@ -33,5 +33,6 @@
         public const string LINK_EDITAL_IMOVEL = "Baixar edital e anexos";
         public const string LINK_LISTA_LICITACOES = "Listar todos os imóveis deste edital";
         public const string LINK_LISTA_VENDA_ONLINE = "Listar todos os imóveis desta venda online";
+        public const string FORMAS_DE_PAGAMENTO = "Formas de pagamento";
     }
 }

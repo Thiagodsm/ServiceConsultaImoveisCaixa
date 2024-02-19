@@ -24,8 +24,8 @@ namespace ConsultaImoveisLeilaoCaixa
         private readonly ITituloEditalRepository _tituloEditalRepository;
         private readonly IViaCEPService _viaCEPService;
 
-        public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger, 
-            IImoveisLeilaoCaixaRepository imoveisLeilaoCaixaRepository, 
+        public TaskConsultaImoveisCaixa(ILogger<TaskConsultaImoveisCaixa> logger,
+            IImoveisLeilaoCaixaRepository imoveisLeilaoCaixaRepository,
             IEnderecoViaCEPRepository enderecoViaCEPRepository,
             ITituloEditalRepository tituloEditalRepository,
             IViaCEPService viaCEPService)
@@ -439,6 +439,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Definindo o objeto a partir da div principal
                     DadosImovel imovel = await DefineObjeto(driver, divPrincipal, divGaleriaImagens);
                     imovel.tituloEditalImovel = tituloEditalImovel;
+                    imovel.numeroImovelSiteCaixa = numeroImovel;
                     dadosImoveis.Add(imovel);
 
                     // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
@@ -747,7 +748,7 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion LerArquivoJson
 
         #region ExtraiLinkMatriculaImovel
-        public static string ExtraiLinkMatriculaImovel(IWebElement divPrincipal, string nomeCampo)
+        public string ExtraiLinkMatriculaImovel(IWebElement divPrincipal, string nomeCampo)
         {
             string pattern = @"ExibeDoc\('(.+?)'\)";
             IReadOnlyCollection<IWebElement> links = divPrincipal.FindElements(By.XPath($".//a[contains(text(), '{nomeCampo}')]"));
@@ -767,14 +768,15 @@ namespace ConsultaImoveisLeilaoCaixa
         #endregion ExtraiLinkMatriculaImovel
 
         #region ExtrairLinkEditalImovel
-        public static string ExtrairLinkEditalImovel(IWebElement divPrincipal, string nomeCampo)
+        public string ExtrairLinkEditalImovel(IWebElement divPrincipal, string nomeCampo)
         {
             string pattern = @"ExibeDoc\('(.+?)'\)";
             IReadOnlyCollection<IWebElement> strongElements = divPrincipal.FindElements(By.XPath($".//strong[contains(text(), '{nomeCampo}')]"));
 
             foreach (var strongElement in strongElements)
             {
-                IWebElement link = strongElement.FindElement(By.XPath(".//preceding::a[1]"));
+                //IWebElement link = strongElement.FindElement(By.XPath(".//preceding::a[1]")); //.//ancestor::a"
+                IWebElement link = strongElement.FindElement(By.XPath(".//ancestor::a"));
                 if (link != null)
                 {
                     Match match = Regex.Match(link.GetAttribute("onclick"), pattern);

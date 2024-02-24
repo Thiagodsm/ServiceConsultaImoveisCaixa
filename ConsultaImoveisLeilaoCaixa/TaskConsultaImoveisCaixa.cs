@@ -832,21 +832,26 @@ namespace ConsultaImoveisLeilaoCaixa
         #region ExtrairData
         public DateTime ExtrairData(string input)
         {
+            // Expressão regular para extrair a data
+            string pattern = @"(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})";
+
             if (string.IsNullOrEmpty(input))
                 return DateTime.MinValue;
 
-            string formatoData = "(Data do arquivo: dd/MM/yyyy HH:mm:ss)";
-
             try
             {
-                string dataString = input.Replace("(Data do arquivo: ", "").Replace(")", "");
-                DateTime data = DateTime.ParseExact(dataString, formatoData, CultureInfo.InvariantCulture);
-                return data;
+                Match match = Regex.Match(input, pattern);
+                if (match.Success)
+                {
+                    if (DateTime.TryParse(match.Groups[1].Value, out DateTime data))
+                        return data;
+                }
             }
-            catch (FormatException)
+            catch (Exception)
             {
-                throw new FormatException("A entrada não está no formato de data esperado.");
+                return DateTime.MinValue;
             }
+            return DateTime.MinValue;
         }
         #endregion ExtrairData
 

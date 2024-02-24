@@ -14,5 +14,6 @@ namespace ConsultaImoveisLeilaoCaixa.Model
         public DateTime data { get; set; }
         public bool processado { get; set; }
         public int totalImoveis { get; set; }
+        public DateTime dataArquivoSite { get; set; }
     }
 }

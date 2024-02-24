@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
+using SeleniumExtras.WaitHelpers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -66,19 +67,33 @@ namespace ConsultaImoveisLeilaoCaixa
                     {
                         string tituloEdital = h5Element.Text;
 
-                        if (!titulosEditais.Contains(tituloEdital) && !titulosProcessados.Any(titulo => titulo.titulo == tituloEdital))
-                        {
-                            titulosEditais.Add(tituloEdital);
-                        }
+                        //if (!titulosEditais.Contains(tituloEdital) && !titulosProcessados.Any(titulo => titulo.titulo == tituloEdital))
+                        //{
+                        //    titulosEditais.Add(tituloEdital);
+                        //}
+
+                        titulosEditais.Add(tituloEdital);
                     }
                     titulosEditais = titulosEditais.Distinct().ToList();
 
+                    if (titulosEditais.Count > 0)
+                    {
+                        // Comparar as duas listas para encontrar os títulos que estão no banco de dados, mas não estão mais disponíveis no site
+                        List<string> titulosExcluidos = titulosProcessados
+                            .Where(titulo => !titulosEditais.Contains(titulo.titulo))
+                            .Select(titulo => titulo.titulo)
+                            .ToList();
+                    }
+                    
                     // Iterar sobre os títulos únicos e processar as páginas correspondentes
                     foreach (string tituloEdital in titulosEditais)
                     {
                         _logger.LogInformation($"Titulo Edital: {tituloEdital}");
                         // Encontre o link correspondente ao título do edital
                         IWebElement linkLeilao = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::a[contains(@onclick, 'ListarEdital')]"));
+
+                        // Obtenha a data do arquivo
+                        string dataArquivo = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::span[contains(., \"(Data do arquivo:\")]")).Text;
 
                         // Obtenha a quantidade de páginas para o edital atual
                         totalPages = ObterQuantidadePaginas(driver, linkLeilao);
@@ -108,6 +123,7 @@ namespace ConsultaImoveisLeilaoCaixa
                         }
 
                         TituloEditalLeilao editalLeilao = new TituloEditalLeilao();
+                        editalLeilao.dataArquivoSite = ExtrairData(dataArquivo);
                         editalLeilao.titulo = tituloEdital;
                         editalLeilao.data = DateTime.Now;
                         editalLeilao.processado = true;
@@ -137,51 +153,24 @@ namespace ConsultaImoveisLeilaoCaixa
                             estadoDropdown.SelectByText("SP");
 
                             // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
-                            Thread.Sleep(5000);
+                            //Thread.Sleep(5000);
 
-                            // Clique no botão "Próximo"
-                            var btnNext1 = driver.FindElement(By.Id("btn_next1"));
-                            btnNext1.Click();
+                            //// Clique no botão "Próximo"
+                            //var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                            //btnNext1.Click();
+
+                            // Aguardar até que o botão "Próximo" esteja clicável, com um timeout de 10 segundos
+                            var btnNext1 = new WebDriverWait(driver, TimeSpan.FromSeconds(10))
+                                .Until(ExpectedConditions.ElementToBeClickable(By.Id("btn_next1")));
 
                             // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
-                            Thread.Sleep(10000);
+                            Thread.Sleep(5000);
                         }
                         catch (Exception ex)
                         {
                             throw;
                         }
                     }
-
-                    // Salvando informacoes dos imoveis
-                    //ImoveisLeilaoCaixa imoveisLeilaoCaixa = new ImoveisLeilaoCaixa();
-                    //imoveisLeilaoCaixa.imoveis = dadosImoveis;
-
-                    //// Ler o conteúdo do arquivo JSON
-                    //string imoveisCarregadosString = LerArquivoJson(Config.CaminhoArquivoImoveis);
-                    //ImoveisLeilaoCaixa imoveisCarregados = ConverterJsonParaObjeto(imoveisCarregadosString);
-
-                    //if (imoveisLeilaoCaixa.imoveis.Count > 0)
-                    //{
-                    //    bool succes = SalvarListaComoJson(imoveisLeilaoCaixa, Config.CaminhoArquivoImoveis);
-
-                    //    string caminhoArquivo = Config.CaminhoArquivoImoveis;
-                    //    string tokenTelegram = Config.BotToken;
-                    //    string chatIdTelegram = Config.ChatId;
-
-                    //    string mensagem = "";
-                    //    foreach (DadosImovel item in imoveisLeilaoCaixa.imoveis)
-                    //    {
-                    //        mensagem = MontaMensagamTelegram(item);
-                    //        bool retTelegram = false;
-                    //        if (item.dadosVendaImovel.LinkImagensImovel.Any())
-                    //             retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, item.dadosVendaImovel.LinkImagensImovel.FirstOrDefault());
-                    //        else
-                    //            retTelegram = await EnviarMensagemTelegram(tokenTelegram, chatIdTelegram, mensagem, "");
-                    //        // Evite enviar mais de uma mensagem por segundo
-                    //        Thread.Sleep(5000);
-                    //    }
-                    //}
-
                     Thread.Sleep(36000000);
                 }
                 catch (Exception e)
@@ -196,7 +185,6 @@ namespace ConsultaImoveisLeilaoCaixa
                 }
                 finally
                 {
-                    // Certifique-se de fechar o navegador quando terminar
                     driver.Quit();
                 }
             }
@@ -272,17 +260,28 @@ namespace ConsultaImoveisLeilaoCaixa
                 estadoDropdown.SelectByText("SP");
 
                 // Aguarde um tempo adicional (de 10 segundos) antes de selecionar a cidade
-                Thread.Sleep(10000);
+                //Thread.Sleep(10000);
 
                 // Clique no botão "Próximo"
-                var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                //var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                //btnNext1.Click();
+
+                // Aguardar até que o botão "Próximo" esteja clicável, com um timeout de 10 segundos
+                var btnNext1 = new WebDriverWait(driver, TimeSpan.FromSeconds(10))
+                    .Until(ExpectedConditions.ElementToBeClickable(By.Id("btn_next1")));
+
+                // Clicar no botão "Próximo"
                 btnNext1.Click();
 
                 // Aguarde um tempo adicional (de 20 segundos) para carregar todos os imoveis
-                Thread.Sleep(20000);
+                //Thread.Sleep(20000);
 
-                // Encontre a div com o ID "listalicitacoes"
-                IWebElement divPrincipalLicitacoes = driver.FindElement(By.CssSelector("div#listalicitacoes"));
+                //// Encontre a div com o ID "listalicitacoes"
+                //IWebElement divPrincipalLicitacoes = driver.FindElement(By.CssSelector("div#listalicitacoes"));
+
+                // Aguardar até que a div#listalicitacoes (div principal de licitações) esteja visível, com um timeout de 10 segundos
+                var divPrincipalLicitacoes = new WebDriverWait(driver, TimeSpan.FromSeconds(20))
+                    .Until(ExpectedConditions.ElementIsVisible(By.CssSelector("div#listalicitacoes")));
 
                 // Encontre todos os elementos 'a' dentro da div
                 IList<IWebElement> links = divPrincipalLicitacoes.FindElements(By.TagName("a"));
@@ -324,10 +323,13 @@ namespace ConsultaImoveisLeilaoCaixa
                 link.Click();
 
                 // Aguarde um tempo para que a página seja totalmente carregada
-                Thread.Sleep(10000);
+                //Thread.Sleep(10000);
+                //// Encontre o elemento que contém o valor de hdnQtdPag
+                //IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));
 
-                // Encontre o elemento que contém o valor de hdnQtdPag
-                IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));
+                // Aguarde até que o elemento hdnQtdPag esteja presente ou até 10 segundos
+                WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+                IWebElement elemento = wait.Until(ExpectedConditions.ElementExists(By.Id("hdnQtdPag")));
 
                 // Obtenha o valor de hdnQtdPag
                 string valorHdnQtdPag = elemento.GetAttribute("value");
@@ -826,6 +828,27 @@ namespace ConsultaImoveisLeilaoCaixa
             }
         }
         #endregion ExtrairCEP
+
+        #region ExtrairData
+        public DateTime ExtrairData(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return DateTime.MinValue;
+
+            string formatoData = "(Data do arquivo: dd/MM/yyyy HH:mm:ss)";
+
+            try
+            {
+                string dataString = input.Replace("(Data do arquivo: ", "").Replace(")", "");
+                DateTime data = DateTime.ParseExact(dataString, formatoData, CultureInfo.InvariantCulture);
+                return data;
+            }
+            catch (FormatException)
+            {
+                throw new FormatException("A entrada não está no formato de data esperado.");
+            }
+        }
+        #endregion ExtrairData
 
         #region ExtraiSituacao
         #endregion ExtraiSituacao

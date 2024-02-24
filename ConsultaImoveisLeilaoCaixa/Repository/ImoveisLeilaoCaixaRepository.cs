@@ -140,6 +140,24 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion DeleteAsync
 
+        #region DeleteByTituloEditalImovelAsync
+        public async Task DeleteByTituloEditalImovelAsync(string tituloEditalImovel)
+        {
+            try
+            {
+                // Define o filtro para encontrar documentos com o título de edital especificado
+                var filter = Builders<DadosImovel>.Filter.Eq(x => x.tituloEditalImovel, tituloEditalImovel);
+
+                // Executa a exclusão dos documentos correspondentes ao filtro
+                await _collection.DeleteManyAsync(filter);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion DeleteByTituloEditalImovelAsync
+
         #region UpdateAsync
         public async Task UpdateAsync(string id, DadosImovel imovel)
         {

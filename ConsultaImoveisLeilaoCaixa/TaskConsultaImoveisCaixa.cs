@@ -45,8 +45,8 @@ namespace ConsultaImoveisLeilaoCaixa
             {
                 _logger.LogInformation("Iniciando o servico: {time}", DateTimeOffset.Now);
 
-                string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
-                EdgeDriver driver = new EdgeDriver(edgeDriverPath);
+                //string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
+                EdgeDriver driver = new EdgeDriver();// new EdgeDriver(edgeDriverPath);
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
                 await _imoveisLeilaoCaixaRepository.TestConnection(Config.ConnectionString, Config.DbName);

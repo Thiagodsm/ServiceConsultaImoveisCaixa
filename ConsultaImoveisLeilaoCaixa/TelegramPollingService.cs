@@ -228,11 +228,9 @@ namespace ConsultaImoveisLeilaoCaixa
         public void HandleFirstMessage(long chatId)
         {
             string message = "Olá! Bem-vindo ao Consulta Imóveis Leilão Caixa Bot.\n\n" +
-                             "Aqui estão os comandos disponíveis:\n" +
-                             "/imoveis/estado - filtra imóveis por estado\n" +
-                             "/imoveis/estado/cidade - filtra imóveis por estado e cidade\n" +
-                             "/imoveis/valor/menor - filtra imóveis por valor\n" +
-                             "/imoveis/valor/maior - filtra imóveis por valor de venda\n\n" +
+                             "Aqui estão os comandos disponíveis.\n" +
+                             "Exemplo:\n" +
+                             "/localidade/sp/são paulo - filtra imóveis por localidade\n\n" +
                              "Envie um dos comandos acima para começar.";
 
             botClient.SendTextMessageAsync(chatId, message);

@@ -323,13 +323,13 @@ namespace ConsultaImoveisLeilaoCaixa
                 link.Click();
 
                 // Aguarde um tempo para que a página seja totalmente carregada
-                //Thread.Sleep(10000);
-                //// Encontre o elemento que contém o valor de hdnQtdPag
-                //IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));
+                Thread.Sleep(10000);
+                // Encontre o elemento que contém o valor de hdnQtdPag
+                IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));
 
                 // Aguarde até que o elemento hdnQtdPag esteja presente ou até 10 segundos
-                WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-                IWebElement elemento = wait.Until(ExpectedConditions.ElementExists(By.Id("hdnQtdPag")));
+                //WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+                //IWebElement elemento = wait.Until(ExpectedConditions.ElementExists(By.Id("hdnQtdPag")));
 
                 // Obtenha o valor de hdnQtdPag
                 string valorHdnQtdPag = elemento.GetAttribute("value");
@@ -382,7 +382,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     }
 
                     // Aguarde um tempo para a próxima página carregar completamente
-                    Thread.Sleep(10000);
+                    //Thread.Sleep(5000);
 
                     // Navegue para a próxima página, se houver
                     if (currentPage < totalPages)
@@ -399,7 +399,7 @@ namespace ConsultaImoveisLeilaoCaixa
                         }
 
                         // Aguarde um tempo para a próxima página carregar completamente
-                        Thread.Sleep(10000);
+                        Thread.Sleep(5000);
                     }
                 }
                 // Removendo Id's duplicados

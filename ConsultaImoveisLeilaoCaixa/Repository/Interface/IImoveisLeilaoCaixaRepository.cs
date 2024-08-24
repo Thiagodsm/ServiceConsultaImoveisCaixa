@@ -17,5 +17,6 @@ namespace ConsultaImoveisLeilaoCaixa.Repository.Interface
         Task<List<DadosImovel>> GetAllAsync();
         Task UpdateAsync(string id, DadosImovel imovel);
         Task DeleteAsync(string id);
+        Task DeleteByTituloAsync(string tituloEdital);
     }
 }

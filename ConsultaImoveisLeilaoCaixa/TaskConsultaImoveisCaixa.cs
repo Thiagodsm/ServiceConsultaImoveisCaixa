@@ -83,6 +83,16 @@ namespace ConsultaImoveisLeilaoCaixa
                             .Where(titulo => !titulosEditais.Contains(titulo.titulo))
                             .Select(titulo => titulo.titulo)
                             .ToList();
+                                                
+                        foreach (string tituloEdital in titulosExcluidos)
+                        {
+                            // Excluindo imoveis cujos editais ja passaram para processar novamente se voltar em outro edital
+                            await _imoveisLeilaoCaixaRepository.DeleteByTituloAsync(tituloEdital);
+
+
+                            // Excluindo titulo do edital do banco apos excluir os imoveis
+                            await _tituloEditalRepository.DeleteAsync(tituloEdital);
+                        }
                     }
                     
                     // Iterar sobre os títulos únicos e processar as páginas correspondentes
@@ -153,15 +163,15 @@ namespace ConsultaImoveisLeilaoCaixa
                             estadoDropdown.SelectByText("SP");
 
                             // Aguarde um tempo adicional (de 5 segundos) após selecionar o estado
-                            //Thread.Sleep(5000);
+                            Thread.Sleep(5000);
 
-                            //// Clique no botão "Próximo"
-                            //var btnNext1 = driver.FindElement(By.Id("btn_next1"));
-                            //btnNext1.Click();
+                            // Clique no botão "Próximo"
+                            var btnNext1 = driver.FindElement(By.Id("btn_next1"));
+                            btnNext1.Click();
 
                             // Aguardar até que o botão "Próximo" esteja clicável, com um timeout de 10 segundos
-                            var btnNext1 = new WebDriverWait(driver, TimeSpan.FromSeconds(10))
-                                .Until(ExpectedConditions.ElementToBeClickable(By.Id("btn_next1")));
+                            //var btnNext1 = new WebDriverWait(driver, TimeSpan.FromSeconds(10))
+                            //    .Until(ExpectedConditions.ElementToBeClickable(By.Id("btn_next1")));
 
                             // Aguarde um tempo adicional (de 10 segundos) para carregar as licitações novamente
                             Thread.Sleep(5000);
@@ -382,7 +392,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     }
 
                     // Aguarde um tempo para a próxima página carregar completamente
-                    //Thread.Sleep(5000);
+                    Thread.Sleep(5000);
 
                     // Navegue para a próxima página, se houver
                     if (currentPage < totalPages)

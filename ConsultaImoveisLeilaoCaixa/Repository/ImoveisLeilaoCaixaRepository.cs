@@ -140,6 +140,20 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion DeleteAsync
 
+        #region DeleteByTituloAsync
+        public async Task DeleteByTituloAsync(string tituloEdital)
+        {
+            try
+            {
+                await _collection.DeleteManyAsync(imovelFilter => imovelFilter.tituloEditalImovel == tituloEdital);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion DeleteAsync
+
         #region DeleteByTituloEditalImovelAsync
         public async Task DeleteByTituloEditalImovelAsync(string tituloEditalImovel)
         {

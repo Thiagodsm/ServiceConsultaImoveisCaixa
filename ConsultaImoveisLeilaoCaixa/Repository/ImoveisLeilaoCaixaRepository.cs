@@ -56,6 +56,20 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion CreateAsync
 
+        #region GetAllAsync
+        public async Task<List<DadosImovel>> GetAllAsync()
+        {
+            try
+            {
+                return await _collection.Find(new BsonDocument()).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+        #endregion GetAllAsync
+
         #region GetByIdAsync
         public async Task<DadosImovel> GetByIdAsync(string id)
         {
@@ -71,60 +85,19 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion GetByIdAsync
 
-
-        public async Task<List<DadosImovel>> GetByUFAndLocalidadeAsync(string uf, string localidade)
+        #region UpdateAsync
+        public async Task UpdateAsync(string id, DadosImovel imovel)
         {
             try
             {
-                // Define um filtro para encontrar documentos que tenham uma correspondência nos campos 'informacoesComplementares.uf' e 'informacoesComplementares.localidade'
-                var filter = Builders<DadosImovel>.Filter.And(
-                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
-                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.localidade", new BsonRegularExpression(localidade, "i"))
-                );
-
-                // Executa a consulta com o filtro
-                return await _collection.Find(filter).ToListAsync();
+                await _collection.ReplaceOneAsync(imovelFilter => imovelFilter.id == id, imovel);
             }
             catch (Exception ex)
             {
                 throw;
             }
         }
-
-        public async Task<List<DadosImovel>> GetByTipoImovelAsync(string localidade, string tipoImovel)
-        {
-            try
-            {
-                // Define um filtro para encontrar documentos que tenham uma correspondência nos campos 'informacoesComplementares.uf' e 'informacoesComplementares.localidade'
-                var filter = Builders<DadosImovel>.Filter.And(
-                    Builders<DadosImovel>.Filter.Regex("tipoImovel", new BsonRegularExpression(tipoImovel, "i")),
-                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.localidade", new BsonRegularExpression(localidade, "i"))
-                );
-
-                // Executa a consulta com o filtro
-                return await _collection.Find(filter).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-
-
-
-        #region GetAllAsync
-        public async Task<List<DadosImovel>> GetAllAsync()
-        {
-            try
-            {
-                return await _collection.Find(new BsonDocument()).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
-        }
-        #endregion GetAllAsync
+        #endregion UpdateAsync
 
         #region DeleteAsync
         public async Task DeleteAsync(string id)
@@ -172,52 +145,146 @@ namespace ConsultaImoveisLeilaoCaixa.Repository
         }
         #endregion DeleteByTituloEditalImovelAsync
 
-        #region UpdateAsync
-        public async Task UpdateAsync(string id, DadosImovel imovel)
+
+        /*#######################################
+         ### METODOS UTILIZADOS PELO TELEGRAM ###
+        #########################################*/
+
+        public async Task<List<DadosImovel>> GetByCidades(string uf, string cidades)
+        {
+            var cidadesArray = cidades.Split(';');
+            var filtros = new List<FilterDefinition<DadosImovel>>();
+
+            foreach (var cidade in cidadesArray)
+            {
+                filtros.Add(
+                    Builders<DadosImovel>.Filter.And(
+                        Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
+                        Builders<DadosImovel>.Filter.Regex("informacoesComplementares.localidade", new BsonRegularExpression(cidade.Trim(), "i"))
+                    )
+                );
+            }
+
+            var filtroFinal = Builders<DadosImovel>.Filter.Or(filtros);
+            return await _collection.Find(filtroFinal).ToListAsync();
+        }
+
+
+        // VERIFICAR OS METODOS DE VENDA DIRETA E LICITAÇÃO ABERTA - PORQUE O LIKE NAO TA FUNCIONANDO; 
+        // VERIFICAR OS METODOS QUE RETORNAM OS TOP 5 IMOVEIS NAS CATEGORIAS SELECIONADAS
+        public async Task<List<DadosImovel>> GetByVendaDireta(string uf, string cidades)
         {
             try
             {
-                //var objectId = new ObjectId(id);
-                //var filter = Builders<DadosImovel>.Filter.Eq("id", objectId);
-                //await _collection.ReplaceOneAsync(filter, imoveis);
+                var listaCidades = cidades.Split(';').Select(c => c.Trim()).ToList();
 
-                //var filter = Builders<DadosImovel>.Filter.Eq(x => x.id, id);
-                //await _collection.ReplaceOneAsync(filter, imoveis);
+                // Filtro para "Venda Direta" ou "Venda Online"
+                var filter = Builders<DadosImovel>.Filter.And(
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
+                    Builders<DadosImovel>.Filter.In("informacoesComplementares.localidade", listaCidades),
+                    Builders<DadosImovel>.Filter.Or(
+                        Builders<DadosImovel>.Filter.Regex("tituloEditalImovel", new BsonRegularExpression(".*Venda Direta.*", "i")),
+                        Builders<DadosImovel>.Filter.Regex("tituloEditalImovel", new BsonRegularExpression(".*Venda Online.*", "i"))
+                    )
+                );
 
-                //var filter = Builders<DadosImovel>.Filter.Eq(imovel => imovel.id, id);
-                //var update = Builders<DadosImovel>.Update
-                //    .Set(imovel => imovel.dataProcessamento, imovel.dataProcessamento)
-                //    .Set(imovel => imovel.visivelCaixaImoveis, imovel.visivelCaixaImoveis)
-                //    .Set(imovel => imovel.nomeLoteamento, imovel.nomeLoteamento)
-                //    .Set(imovel => imovel.dadosVendaImovel, imovel.dadosVendaImovel)
-                //    .Set(imovel => imovel.valorAvaliacao, imovel.valorAvaliacao)
-                //    .Set(imovel => imovel.valorMinimoVenda, imovel.valorMinimoVenda)
-                //    .Set(imovel => imovel.desconto, imovel.desconto)
-                //    .Set(imovel => imovel.valorMinimoPrimeiraVenda, imovel.valorMinimoPrimeiraVenda)
-                //    .Set(imovel => imovel.valorMinimoSegundaVenda, imovel.valorMinimoSegundaVenda)
-                //    .Set(imovel => imovel.tipoImovel, imovel.tipoImovel)
-                //    .Set(imovel => imovel.quartos, imovel.quartos)
-                //    .Set(imovel => imovel.garagem, imovel.garagem)
-                //    .Set(imovel => imovel.numeroImovel, imovel.numeroImovel)
-                //    .Set(imovel => imovel.matricula, imovel.matricula)
-                //    .Set(imovel => imovel.comarca, imovel.comarca)
-                //    .Set(imovel => imovel.oficio, imovel.oficio)
-                //    .Set(imovel => imovel.inscricaoImobiliaria, imovel.inscricaoImobiliaria)
-                //    .Set(imovel => imovel.averbacaoLeilaoNegativos, imovel.averbacaoLeilaoNegativos)
-                //    .Set(imovel => imovel.areaTotal, imovel.areaTotal)
-                //    .Set(imovel => imovel.areaPrivativa, imovel.areaPrivativa)
-                //    .Set(imovel => imovel.areaTerreno, imovel.areaTerreno)
-                //    .Set(imovel => imovel.situacao, imovel.situacao);
-
-                //await _collection.UpdateOneAsync(filter, update);
-
-                await _collection.ReplaceOneAsync(imovelFilter => imovelFilter.id == id, imovel);
+                return await _collection.Find(filter).ToListAsync();
             }
             catch (Exception ex)
             {
                 throw;
             }
         }
-        #endregion UpdateAsync
+
+        public async Task<List<DadosImovel>> GetByLicitacaoAberta(string uf, string cidades)
+        {
+            try
+            {
+                var listaCidades = cidades.Split(';').Select(c => c.Trim()).ToList();
+
+                // Filtro para "Licitação Aberta", utilizando expressões regulares com 'contains' (similar a '%text%')
+                var filter = Builders<DadosImovel>.Filter.And(
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
+                    Builders<DadosImovel>.Filter.In("informacoesComplementares.localidade", listaCidades),
+                    Builders<DadosImovel>.Filter.Regex("tituloEditalImovel", new BsonRegularExpression(".*Licitação Aberta.*", "i"))
+                );
+
+                return await _collection.Find(filter).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<DadosImovel>> GetTop5ByDataVenda(string uf, string cidades)
+        {
+            try
+            {
+                var listaCidades = cidades.Split(';').Select(c => c.Trim()).ToList();
+
+                // Filtro para UF e cidades, ordenado pela data de venda mais próxima
+                var filter = Builders<DadosImovel>.Filter.And(
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
+                    Builders<DadosImovel>.Filter.In("informacoesComplementares.localidade", listaCidades)
+                );
+
+                return await _collection.Find(filter)
+                    .Sort(Builders<DadosImovel>.Sort.Ascending("dataLicitacao"))
+                    .Limit(5)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<DadosImovel>> GetTop5ByValor(string uf, string cidades)
+        {
+            try
+            {
+                var listaCidades = cidades.Split(';').Select(c => c.Trim()).ToList();
+
+                // Filtro para UF e cidades, ordenado pelo menor valor de venda
+                var filter = Builders<DadosImovel>.Filter.And(
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
+                    Builders<DadosImovel>.Filter.In("informacoesComplementares.localidade", listaCidades)
+                );
+
+                return await _collection.Find(filter)
+                    .Sort(Builders<DadosImovel>.Sort.Ascending("valorMinimoVenda"))
+                    .Limit(5)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<DadosImovel>> GetTop5ByDesconto(string uf, string cidades)
+        {
+            try
+            {
+                var listaCidades = cidades.Split(';').Select(c => c.Trim()).ToList();
+
+                // Filtro para UF e cidades, ordenado pelo maior desconto
+                var filter = Builders<DadosImovel>.Filter.And(
+                    Builders<DadosImovel>.Filter.Regex("informacoesComplementares.uf", new BsonRegularExpression(uf, "i")),
+                    Builders<DadosImovel>.Filter.In("informacoesComplementares.localidade", listaCidades),
+                    Builders<DadosImovel>.Filter.Gt("desconto", 0)
+                );
+
+                return await _collection.Find(filter)
+                    .Sort(Builders<DadosImovel>.Sort.Descending("desconto"))
+                    .Limit(5)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
     }
 }

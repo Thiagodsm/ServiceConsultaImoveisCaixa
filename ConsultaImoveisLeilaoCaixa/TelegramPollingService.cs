@@ -1,6 +1,7 @@
 ﻿using ConsultaImoveisLeilaoCaixa.Model;
 using ConsultaImoveisLeilaoCaixa.Repository.Interface;
 using ConsultaImoveisLeilaoCaixa.Util;
+using System;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -69,19 +70,16 @@ namespace ConsultaImoveisLeilaoCaixa
                     string comandoRecebido = update.Message.Text;
                     long chatId = update.Message.Chat.Id;
 
-                    // Verifica se é a primeira mensagem e envia os comandos disponíveis
-                    if (/*IsFirstMessage(comandoRecebido) ||*/ comandoRecebido == "/start")
+                    // Verifica se e a primeira mensagem e envia os comandos disponíveis
+                    if (comandoRecebido == "/start" || comandoRecebido == "/começar" || comandoRecebido == "/comecar")
                     {
                         HandleFirstMessage(chatId);
                     }
                     else
                     {
-                        // Adiciona o comando à fila
+                        // Adiciona o comando a fila
                         EnqueueCommand(comandoRecebido, chatId);
                     }
-
-                    // Adiciona o comando à fila
-                    //EnqueueCommand(comandoRecebido, chatId);
                 }
             }
         }
@@ -98,12 +96,6 @@ namespace ConsultaImoveisLeilaoCaixa
 
                     try
                     {
-                        // Lógica para processar o comando recebido
-                        //if (DeveResponder(commandRequest.Command))
-                        //{
-                        //    await EnviarResposta(commandRequest.ChatId, "Resposta ao comando: " + commandRequest.Command);
-                        //}
-                        // Lógica para processar o comando recebido
                         await HandleCommand(commandRequest.Command, commandRequest.ChatId);
                     }
                     finally
@@ -127,14 +119,6 @@ namespace ConsultaImoveisLeilaoCaixa
         }
         #endregion EnqueueCommand
 
-        #region DeveResponder
-        private bool DeveResponder(string command)
-        {
-            // Lógica para verificar se o bot deve ou não responder ao comando
-            return true;
-        }
-        #endregion DeveResponder
-
         #region EnviarResposta
         private async Task EnviarResposta(long chatId, string resposta)
         {
@@ -146,8 +130,11 @@ namespace ConsultaImoveisLeilaoCaixa
         public enum ComandoIdentificador
         {
             Localidade,
-            ValorMenor,
-            TipoImovel
+            Valor,
+            DataVenda,
+            Desconto,
+            VendaDireta,
+            LicitacaoAberta
         }
 
         #region HandleCommand
@@ -159,9 +146,23 @@ namespace ConsultaImoveisLeilaoCaixa
                 string[] parts = command.Split('/');
 
                 // Verifica se o comando tem o formato correto
-                if (parts.Length != 4)
+                if (parts.Length < 3 || parts.Length > 4)
                 {
-                    await botClient.SendTextMessageAsync(chatId, "Comando inválido. Use o formato /imoveis/identificador/valor1/valor2.");
+                    await botClient.SendTextMessageAsync(chatId, "Comando inválido. Use um dos seguintes formatos: " +
+                        "\n/Localidade/[sigla estado]/[cidade]\n" +
+                        "\n/VendaDireta/[sigla estado]/[cidade]\n" +
+                        "\n/LicitacaoAberta/[sigla estado]/[cidade]\n" +
+                        "\n/Valor/[sigla estado]/[cidade]\n" +
+                        "\n/DataVenda/[sigla estado]/[cidade]\n" +
+                        "\n/Desconto/[sigla estado]/[cidade]\n\n" +
+                        "Exemplos de como começar: \n" +
+                        "\n/Localidade/sp/guarujá;santos - retorna imoveis da(s) cidade(s) escolhida(s)\n" +
+                        "\n/VendaDireta/sp/guarujá;cubatão - retorna as vendas diretas da(s) cidade(s) escolhida(s)\n" +
+                        "\n/LicitacaoAberta/sp/guarujá - retorna as licitações abertas da cidade escolhida\n" +
+                        "\n\n Os comandos abaixo listam (se encontrados) os top 5 imoveis\n" +
+                        "\n/Valor/sp/praia grande;gurujá;bertioga - retorna os imoveis com menores preços\n" +
+                        "\n/DataVenda/sp/praia grande;gurujá;bertioga -  retorna os imoveis com datas de vendas mais proximas\n" +
+                        "\n/Desconto/sp/praia grande;gurujá;santos\n - retorna os imoveis com maiores descontos");
                     return;
                 }
 
@@ -173,23 +174,36 @@ namespace ConsultaImoveisLeilaoCaixa
                     return;
                 }
 
-                string valor1 = parts[2];
-                string valor2 = parts[3];
+                string uf = parts[2];
+                string cidades = parts.Length > 3 ? parts[3] : null;
 
                 List<DadosImovel> imoveis = new List<DadosImovel>();
                 switch (identificador)
                 {
                     case ComandoIdentificador.Localidade:
-                        //Localidade/uf/localidade
-                        imoveis = await _imoveisLeilaoCaixaRepository.GetByUFAndLocalidadeAsync(valor1, valor2);
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetByCidades(uf, cidades);
                         break;
-                    case ComandoIdentificador.ValorMenor:
-                        //imoveis = await _imoveisLeilaoCaixaRepository.GetByValorAvaliacaoMenorAsync(valor1);
+
+                    case ComandoIdentificador.VendaDireta:
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetByVendaDireta(uf, cidades);
                         break;
-                    case ComandoIdentificador.TipoImovel:
-                        //TipoImovel/localidade/tipoImovel
-                        imoveis = await _imoveisLeilaoCaixaRepository.GetByTipoImovelAsync(valor1, valor2);
+
+                    case ComandoIdentificador.LicitacaoAberta:
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetByLicitacaoAberta(uf, cidades);
                         break;
+
+                    case ComandoIdentificador.Valor:
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetTop5ByValor(uf, cidades);
+                        break;
+
+                    case ComandoIdentificador.DataVenda:
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetTop5ByDataVenda(uf, cidades);
+                        break;
+
+                    case ComandoIdentificador.Desconto:
+                        imoveis = await _imoveisLeilaoCaixaRepository.GetTop5ByDesconto(uf, cidades);
+                        break;
+
                     default:
                         await botClient.SendTextMessageAsync(chatId, "Identificador de comando não suportado.");
                         return;
@@ -213,7 +227,6 @@ namespace ConsultaImoveisLeilaoCaixa
                 }
                 else
                 {
-                    // Se nenhum imóvel for encontrado, envia uma mensagem informando
                     await botClient.SendTextMessageAsync(chatId, "Nenhum imóvel encontrado com base nos critérios fornecidos.");
                 }
             }
@@ -227,23 +240,27 @@ namespace ConsultaImoveisLeilaoCaixa
         #region HandleFirstMessage
         public void HandleFirstMessage(long chatId)
         {
-            string message = "Olá! Bem-vindo ao Consulta Imóveis Leilão Caixa Bot.\n\n" +
-                             "Aqui estão os comandos disponíveis.\n" +
-                             "Exemplo:\n" +
-                             "/localidade/sp/são paulo - filtra imóveis por localidade\n\n" +
-                             "Envie um dos comandos acima para começar.";
+            string message ="Olá! Bem-vindo ao bot Consulta Imóveis Leilão Caixa.\n\n" +
+                            "Aqui estão os comandos disponíveis.\n\n" +
+                            "\n/Localidade/[sigla estado]/[cidade]\n" +
+                            "\n/VendaDireta/[sigla estado]/[cidade]\n" +
+                            "\n/LicitacaoAberta/[sigla estado]/[cidade]\n" +
+                            "\n/Valor/[sigla estado]/[cidade]\n" +
+                            "\n/DataVenda/[sigla estado]/[cidade]\n" +
+                            "\n/Desconto/[sigla estado]/[cidade]\n\n" +
+                            "Exemplos de como começar: \n" +
+                            "\n/Localidade/sp/guarujá;santos - retorna imoveis da(s) cidade(s) escolhida(s)\n" +
+                            "\n/VendaDireta/sp/guarujá;cubatão - retorna as vendas diretas da(s) cidade(s) escolhida(s)\n" +
+                            "\n/LicitacaoAberta/sp/guarujá - retorna as licitações abertas da cidade escolhida\n" +
+                            "\n\n Os comandos abaixo listam (se encontrados) os top 5 imoveis\n" +
+                            "\n/Valor/sp/praia grande;gurujá;bertioga - retorna os imoveis com menores preços\n" +
+                            "\n/DataVenda/sp/praia grande;gurujá;bertioga -  retorna os imoveis com datas de vendas mais proximas\n" +
+                            "\n/Desconto/sp/praia grande;gurujá;santos\n - retorna os imoveis com maiores descontos" +
+                            "\n\nEnvie um dos comandos acima para começar.";
 
             botClient.SendTextMessageAsync(chatId, message);
         }
         #endregion HandleFirstMessage
-
-        #region IsFirstMessage
-        public bool IsFirstMessage(string message)
-        {
-            // Verifica se a mensagem não contém nenhum comando conhecido
-            return !Regex.IsMatch(message, @"\/imoveis\/(estado|valor|cidade)");
-        }
-        #endregion IsFirstMessage
 
         #region MontaMensagamTelegram
         public string MontaMensagamTelegram(DadosImovel imovel)

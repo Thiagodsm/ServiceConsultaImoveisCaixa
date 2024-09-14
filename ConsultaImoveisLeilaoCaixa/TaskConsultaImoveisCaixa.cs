@@ -19,6 +19,7 @@ namespace ConsultaImoveisLeilaoCaixa
     public class TaskConsultaImoveisCaixa : BackgroundService
     {
         #region ctor
+        private readonly NLog.Logger log;
         private readonly ILogger<TaskConsultaImoveisCaixa> _logger;
         private readonly IImoveisLeilaoCaixaRepository _imoveisLeilaoCaixaRepository;
         private readonly IEnderecoViaCEPRepository _enderecoViaCEPRepository;
@@ -31,6 +32,7 @@ namespace ConsultaImoveisLeilaoCaixa
             ITituloEditalRepository tituloEditalRepository,
             IViaCEPService viaCEPService)
         {
+            log = NLog.LogManager.GetLogger("logConsultaImoveisLeilaoCaixa");
             _logger = logger;
             _imoveisLeilaoCaixaRepository = imoveisLeilaoCaixaRepository;
             _enderecoViaCEPRepository = enderecoViaCEPRepository;
@@ -46,8 +48,7 @@ namespace ConsultaImoveisLeilaoCaixa
             {
                 _logger.LogInformation("Iniciando o servico: {time}", DateTimeOffset.Now);
 
-                //string edgeDriverPath = @"C:\Users\thiag\Documents\WebDriver\msedgedriver.exe";
-                EdgeDriver driver = new EdgeDriver();// new EdgeDriver(edgeDriverPath);
+                EdgeDriver driver = new EdgeDriver();
                 List<string> numerosImoveisProcessados = new List<string>();
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
                 await _imoveisLeilaoCaixaRepository.TestConnection(Config.ConnectionString, Config.DbName);
@@ -61,17 +62,12 @@ namespace ConsultaImoveisLeilaoCaixa
                     int totalPages = 0;// NavegacaoImoveis(driver);
                     List<IWebElement> linksLicitacoes = NavegacaoLicitacoes(driver);
                     List<TituloEditalLeilao> titulosProcessados = await _tituloEditalRepository.GetAllAsync();
+                    _logger.LogInformation($"Total licitacoes encontradas: {titulosProcessados.Count}");
 
                     // Iterar sobre os títulos dos editais e adicioná-los a uma lista
                     foreach (IWebElement h5Element in driver.FindElements(By.TagName("h5")))
                     {
                         string tituloEdital = h5Element.Text;
-
-                        //if (!titulosEditais.Contains(tituloEdital) && !titulosProcessados.Any(titulo => titulo.titulo == tituloEdital))
-                        //{
-                        //    titulosEditais.Add(tituloEdital);
-                        //}
-
                         titulosEditais.Add(tituloEdital);
                     }
                     titulosEditais = titulosEditais.Distinct().ToList();
@@ -83,12 +79,14 @@ namespace ConsultaImoveisLeilaoCaixa
                             .Where(titulo => !titulosEditais.Contains(titulo.titulo))
                             .Select(titulo => titulo.titulo)
                             .ToList();
+
+                        // Removendo titulos de licitacoes ja processadas e nao que nao serao excluidas
+                        titulosEditais = titulosEditais.Except(titulosProcessados.Select(licitacao => licitacao.titulo)).ToList();
                                                 
                         foreach (string tituloEdital in titulosExcluidos)
                         {
                             // Excluindo imoveis cujos editais ja passaram para processar novamente se voltar em outro edital
                             await _imoveisLeilaoCaixaRepository.DeleteByTituloAsync(tituloEdital);
-
 
                             // Excluindo titulo do edital do banco apos excluir os imoveis
                             await _tituloEditalRepository.DeleteAsync(tituloEdital);
@@ -103,28 +101,35 @@ namespace ConsultaImoveisLeilaoCaixa
                         IWebElement linkLeilao = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::a[contains(@onclick, 'ListarEdital')]"));
 
                         // Obtenha a data do arquivo
-                        string dataArquivo = driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::span[contains(., \"(Data do arquivo:\")]")).Text;
+                        string dataArquivo = driver.FindElements(By.XPath($"//h5[text()='{tituloEdital}']/following::span[contains(., '(Data do arquivo:')]")).Count > 0
+                            ? driver.FindElement(By.XPath($"//h5[text()='{tituloEdital}']/following::span[contains(., '(Data do arquivo:')]")).Text
+                            : string.Empty;
 
                         // Obtenha a quantidade de páginas para o edital atual
                         totalPages = ObterQuantidadePaginas(driver, linkLeilao);
+                        _logger.LogInformation($"{totalPages} pagina(s) foram encontrada(s)");
 
                         // Buscar os IDs dos imóveis na página atual
                         numerosImoveisProcessados.AddRange(BuscaIdsImoveis(driver, totalPages, "Imoveis Licitacoes"));
 
                         // Extrai as informações do site da caixa em forma de objeto
                         dadosImoveis.AddRange(await ExtraiDadosImoveisCaixa(driver, numerosImoveisProcessados, tituloEdital));
+                        _logger.LogInformation("Dados dos imoveis processados com sucesso.");
 
+                        _logger.LogInformation("Inserindo dados do imoveis no banco");
                         foreach (DadosImovel imovelNovo in dadosImoveis)
                         {
                             try
                             {
+                                _logger.LogInformation($"Inserindo imovel: {imovelNovo.nomeLoteamento} - {imovelNovo.comarca}");
                                 DadosImovel imovelAux = await _imoveisLeilaoCaixaRepository.GetByIdAsync(imovelNovo.id);
                                 if (imovelAux == null)
                                     await _imoveisLeilaoCaixaRepository.CreateAsync(imovelNovo);
                                 else
-                                {
+                                { 
                                     await _imoveisLeilaoCaixaRepository.UpdateAsync(imovelNovo.id, imovelNovo);
                                 }
+                                _logger.LogInformation($"Inserido com sucesso");
                             }
                             catch (Exception ex)
                             {
@@ -132,6 +137,7 @@ namespace ConsultaImoveisLeilaoCaixa
                             }
                         }
 
+                        _logger.LogInformation("Definindo objeto da licitacao");
                         TituloEditalLeilao editalLeilao = new TituloEditalLeilao();
                         editalLeilao.dataArquivoSite = ExtrairData(dataArquivo);
                         editalLeilao.titulo = tituloEdital;
@@ -141,13 +147,16 @@ namespace ConsultaImoveisLeilaoCaixa
 
                         TituloEditalLeilao editalAux = await _tituloEditalRepository.GetByIdAsync(editalLeilao.titulo);
 
+                        _logger.LogInformation("Inserindo licitacao");
                         if (editalAux == null)
                             await _tituloEditalRepository.CreateAsync(editalLeilao);
                         else
                             await _tituloEditalRepository.UpdateAsync(editalLeilao.titulo, editalLeilao);
+                        _logger.LogInformation("Licitacao inserida com sucesso");
 
                         try
                         {
+                            _logger.LogInformation("Volta para a pagina anterior para processar a proxima licitacao");
                             // Voltar à página anterior
                             IWebElement botaoVoltar = driver.FindElement(By.CssSelector("button.voltaLicitacoes"));
                             botaoVoltar.Click();
@@ -181,6 +190,8 @@ namespace ConsultaImoveisLeilaoCaixa
                             throw;
                         }
                     }
+                    _logger.LogInformation("Todos as licitacoes ja foram processadas. Proxima execucao em 10 horas");
+                    driver.Quit();
                     Thread.Sleep(36000000);
                 }
                 catch (Exception e)
@@ -337,10 +348,6 @@ namespace ConsultaImoveisLeilaoCaixa
                 // Encontre o elemento que contém o valor de hdnQtdPag
                 IWebElement elemento = driver.FindElement(By.Id("hdnQtdPag"));
 
-                // Aguarde até que o elemento hdnQtdPag esteja presente ou até 10 segundos
-                //WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-                //IWebElement elemento = wait.Until(ExpectedConditions.ElementExists(By.Id("hdnQtdPag")));
-
                 // Obtenha o valor de hdnQtdPag
                 string valorHdnQtdPag = elemento.GetAttribute("value");
 
@@ -374,6 +381,7 @@ namespace ConsultaImoveisLeilaoCaixa
         {
             try
             {
+                _logger.LogInformation("Buscando Id dos imoveis");
                 // Conjunto para rastrear números de imóveis já processados
                 List<string> numerosImoveisProcessados = new List<string>();
 
@@ -414,6 +422,11 @@ namespace ConsultaImoveisLeilaoCaixa
                 }
                 // Removendo Id's duplicados
                 numerosImoveisProcessados = numerosImoveisProcessados.Distinct().ToList();
+                if (numerosImoveisProcessados.Count > 0)
+                    _logger.LogInformation($"{numerosImoveisProcessados.Count} imoveis foram encontrados");
+                else
+                    _logger.LogInformation($"Nenhum imovel foi encontrado");
+
                 return numerosImoveisProcessados;
             }
             catch (Exception ex)
@@ -421,7 +434,6 @@ namespace ConsultaImoveisLeilaoCaixa
                 _logger.LogError(ex.Message);
                 throw;
             }
-
         }
         #endregion BuscaIdsImoveis
 
@@ -430,11 +442,17 @@ namespace ConsultaImoveisLeilaoCaixa
         {
             try
             {
+                _logger.LogInformation($"Buscando os dados dos {numerosImoveisProcessados.Count} imoveis encontrados");
                 List<DadosImovel> dadosImoveis = new List<DadosImovel>();
 
                 // Itera sobre os números de imóveis processados
+                int count = 0;
                 foreach (var numeroImovel in numerosImoveisProcessados)
                 {
+                    count++;
+                    _logger.LogInformation($"Id do imovel: {numeroImovel} - {count} de {numerosImoveisProcessados.Count}");
+                    // Aguarde para o elemento ficar disponivel na tela
+                    Thread.Sleep(1000);
                     // Executa o script JavaScript para chamar o método detalhe_imovel com o ID correspondente
                     string script = $"detalhe_imovel({numeroImovel});";
                     ((IJavaScriptExecutor)driver).ExecuteScript(script);
@@ -445,6 +463,7 @@ namespace ConsultaImoveisLeilaoCaixa
                     // Obtenha os dados esperados
                     // Localiza a div principal que contém as informações
                     IWebElement divPrincipal = driver.FindElement(By.CssSelector("div.content-wrapper.clearfix"));
+
                     // Localiza a div pelo ID "galeria-imagens"
                     IWebElement divGaleriaImagens = driver.FindElement(By.Id("galeria-imagens"));
 
@@ -456,6 +475,7 @@ namespace ConsultaImoveisLeilaoCaixa
 
                     // Após lidar com a página de detalhes, você pode voltar à lista de imóveis
                     driver.Navigate().Back();
+                    log.Info("Buscando proximo imovel\n");
                 }
 
                 // Aguarde um tempo para voltar a pagina anterior
@@ -495,6 +515,7 @@ namespace ConsultaImoveisLeilaoCaixa
             try
             {
                 DadosImovel imovel = new DadosImovel();
+                _logger.LogInformation("Definindo o objeto com os dados do site");
                 imovel.visivelCaixaImoveis = true;
                 IWebElement loteamento = divPrincipal.FindElement(By.CssSelector("h5"));
                 imovel.nomeLoteamento = loteamento != null ? loteamento.Text : String.Empty;
@@ -535,18 +556,24 @@ namespace ConsultaImoveisLeilaoCaixa
                 string cep = ExtrairCEP(imovel.dadosVendaImovel.endereco);
                 try
                 {
+                    _logger.LogInformation("Verificando se o endereco/CEP ja esta cadastrado");
                     if (!String.IsNullOrWhiteSpace(cep))
                     {
                         EnderecoViaCEP enderecoViaCEP = await _enderecoViaCEPRepository.GetByIdAsync(cep);
                         if (enderecoViaCEP != null)
+                        {
+                            _logger.LogInformation($"Endereco ja cadastrado, {enderecoViaCEP.localidade}, CEP: {enderecoViaCEP.cep}");
                             imovel.informacoesComplementares = enderecoViaCEP;
+                        }                            
                         else
                         {
+                            _logger.LogInformation($"CEP: {cep} nao cadastrado, consultando na API dos correios");
                             EnderecoViaCEP enderecoAux = await _viaCEPService.ConsultarCep(cep);
                             if (enderecoAux != null && !String.IsNullOrWhiteSpace(enderecoAux.cep))
                             {
                                 imovel.informacoesComplementares = enderecoAux;
                                 await _enderecoViaCEPRepository.CreateAsync(imovel.informacoesComplementares);
+                                _logger.LogInformation("CEP consultado e gravado com sucesso.");
                             }
                         }
                     }
@@ -580,11 +607,11 @@ namespace ConsultaImoveisLeilaoCaixa
                     string imageUrl = imagem.GetAttribute("src");
                     if (!string.IsNullOrEmpty(imageUrl))
                     {
-                        //byte[] imagemBytes = BaixarImagem(imageUrl);
                         imovel.dadosVendaImovel.LinkImagensImovel.Add(imageUrl);
                     }
                 }
                 imovel.dadosVendaImovel.LinkImagensImovel = imovel.dadosVendaImovel.LinkImagensImovel.Distinct().ToList();
+
                 return imovel;
             }
             catch (Exception ex)

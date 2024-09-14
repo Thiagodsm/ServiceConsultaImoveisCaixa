@@ -43,6 +43,8 @@ C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\MongoDB.Driver.Core.dll
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\MongoDB.Libmongocrypt.dll
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\Newtonsoft.Json.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\NLog.dll
+C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\NLog.Extensions.Logging.dll
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\WebDriver.Support.dll
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\WebDriver.dll
 C:\Users\thiag\Desktop\c#\ConsultaImoveisLeilaoCaixa\ConsultaImoveisLeilaoCaixa\bin\Debug\net6.0\SharpCompress.dll
